@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { ArrowDownLeft, ArrowUpRight, ChevronLeft, PanelsTopLeft } from 'lucide-react'
+import { ArrowDownLeft, ChevronLeft } from 'lucide-react'
 
 import { ConfigNotice, ErrorNotice } from '@/components/shell/notices'
 import { Button } from '@/components/ui/button'
@@ -27,7 +27,6 @@ export function GlanceWorkspace() {
 
   const navigate = useShellStore((state) => state.navigate)
   const selectStudent = useShellStore((state) => state.selectStudent)
-  const openOverlay = useShellStore((state) => state.openOverlay)
   const openReceiveFor = useShellStore((state) => state.openReceiveFor)
   const navigateStudents = useShellStore((state) => state.navigateStudents)
 
@@ -139,21 +138,6 @@ export function GlanceWorkspace() {
             <p className="py-8 text-center text-sm text-faint">لا توجد أرصدة مستحقة.</p>
           )}
         </div>
-      </section>
-
-      <section aria-label="إجراءات اليوم" className="flex flex-wrap gap-3">
-        <Button variant="gold" onClick={() => openOverlay('receive')}>
-          <ArrowDownLeft className="size-4" />
-          سند قبض
-        </Button>
-        <Button variant="quiet" onClick={() => openOverlay('expense')}>
-          <ArrowUpRight className="size-4" />
-          سند صرف
-        </Button>
-        <Button variant="quiet" onClick={() => navigate('students')}>
-          <PanelsTopLeft className="size-4" />
-          دليل الطلاب
-        </Button>
       </section>
     </div>
   )

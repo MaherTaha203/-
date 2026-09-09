@@ -72,7 +72,7 @@ export function StudentDirectoryWorkspace() {
         <button type="button" onClick={() => navigateStudents('statement')} className="rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground">كشف الحساب</button>
       </div>
 
-      <div className="mb-3 flex items-center gap-2 rounded-xl border border-border-strong bg-panel px-3.5 py-2.5 shadow-sm focus-within:border-olive focus-within:ring-2 focus-within:ring-olive/20">
+      <div className="mb-3 flex items-center gap-2 rounded-xl border border-border-strong bg-panel px-3.5 py-2.5 shadow-sm focus-within:border-olive">
         <Search aria-hidden className="size-4 flex-none text-faint" />
         <input
           type="search"

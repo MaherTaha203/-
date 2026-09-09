@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowUpRight } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { useForm, type DefaultValues } from 'react-hook-form'
 
 import { ActionSheet } from '@/components/shell/action-sheet'
 import { Button } from '@/components/ui/button'
@@ -19,8 +19,10 @@ import { useVoucherAdminStore } from '@/store/use-voucher-admin-store'
 import { useWorkspaceStore } from '@/store/use-workspace-store'
 import type { FinancialMovement } from '@/types/domain'
 
-function buildDefaults(): PaymentVoucherFormValues {
-  return { paymentDate: todayIsoDate(), expenseType: '', amount: 0, notes: '' }
+function buildDefaults(): DefaultValues<PaymentVoucherFormValues> {
+  // Amount starts empty (not 0) so typing doesn't produce a leading zero like
+  // "0500"; the input shows a grey "0" placeholder instead.
+  return { paymentDate: todayIsoDate(), expenseType: '', amount: undefined, notes: '' }
 }
 
 export function PaymentSheet() {
@@ -90,7 +92,7 @@ export function PaymentSheet() {
         {savedVoucher ? <div className="py-3"><p className="mb-4 text-center text-sm font-semibold text-foreground">تم حفظ السند. يمكنك طباعته الآن.</p><Button type="button" variant="outline" className="w-full" onClick={closeOverlay}>إغلاق بعد الطباعة</Button></div> : (
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
             <Field label="بند المصروف" error={form.formState.errors.expenseType?.message}>{(control) => <Input placeholder="مثال: إيجار، كهرباء، رواتب" readOnly={isEdit} {...control} {...form.register('expenseType')} />}</Field>
-            <Field label="المبلغ المدفوع" error={form.formState.errors.amount?.message}>{(control) => <div className="flex items-center gap-2 rounded-xl border border-clay/30 bg-clay-weak/40 px-4 py-1 focus-within:border-clay focus-within:ring-2 focus-within:ring-clay/20"><input type="number" min="1" step="1" inputMode="numeric" readOnly={isEdit} className="figure h-12 w-full bg-transparent text-2xl font-semibold text-foreground outline-none placeholder:text-faint" placeholder="0" {...control} {...form.register('amount', { valueAsNumber: true })} /><span className="text-sm font-medium text-muted-foreground">₪</span></div>}</Field>
+            <Field label="المبلغ المدفوع" error={form.formState.errors.amount?.message}>{(control) => <div className="flex items-center gap-2 rounded-xl border border-clay/30 bg-clay-weak/40 px-4 py-1 focus-within:border-clay"><input type="number" min="1" step="1" inputMode="numeric" readOnly={isEdit} className="figure h-12 w-full bg-transparent text-2xl font-semibold text-foreground outline-none placeholder:text-faint" placeholder="0" {...control} {...form.register('amount', { valueAsNumber: true })} /><span className="text-sm font-medium text-muted-foreground">₪</span></div>}</Field>
             <Field label="تاريخ الدفع" error={form.formState.errors.paymentDate?.message}>{(control) => <Input type="date" readOnly={isEdit} className="figure" {...control} {...form.register('paymentDate')} />}</Field>
             <Field label="الملاحظات" error={form.formState.errors.notes?.message}>{(control) => <Textarea placeholder="ملاحظات اختيارية" {...control} {...form.register('notes')} />}</Field>
             <Button type="submit" size="lg" variant="default" className="w-full" disabled={busy}><ArrowUpRight className="size-4" />{busy ? 'جارٍ الحفظ…' : isEdit ? 'حفظ التعديل' : 'حفظ سند الصرف'}</Button>

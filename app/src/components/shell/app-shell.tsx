@@ -108,9 +108,6 @@ export function AppShell() {
             <ArrowUpRight className="size-4" />
             سند صرف
           </button>
-          <button type="button" onClick={() => navigateSettings('system')} aria-label="الإعدادات" aria-current={route === 'settings' ? 'page' : undefined} className={`rounded-full p-2 ${route === 'settings' ? 'text-olive' : 'text-muted-foreground'}`}>
-            <Settings className="size-[18px]" />
-          </button>
           <button type="button" onClick={() => void signOut()} aria-label="خروج" className="rounded-full p-2 text-muted-foreground">
             <LogOut className="size-[18px]" />
           </button>
@@ -119,7 +116,9 @@ export function AppShell() {
 
       <main className="flex-1 overflow-x-clip">
         <div className="mx-auto w-full max-w-[1440px] px-4 pb-28 pt-8 md:px-8 md:pb-14 md:pt-10">
-          <CurrentView route={route} studentView={studentView} settingsView={settingsView} />
+          <div key={`${route}:${studentView}:${settingsView}:${reportView}`} className="route-fade">
+            <CurrentView route={route} studentView={studentView} settingsView={settingsView} />
+          </div>
         </div>
       </main>
 
@@ -168,7 +167,7 @@ function GroupNav<T extends string>({ label, icon: Icon, active, value, items, o
         {label}
         <ChevronDown className="size-4" />
       </button>
-      {open ? <div role="menu" className="absolute start-0 z-30 mt-1 w-48 overflow-hidden rounded-xl border border-border-strong bg-panel py-1 shadow-lg">
+      {open ? <div role="menu" className="menu-in absolute start-0 z-30 mt-1 w-48 overflow-hidden rounded-xl border border-border-strong bg-panel py-1 shadow-lg">
         {items.map((item) => <button key={item.value} type="button" role="menuitemradio" aria-checked={active && value === item.value} onClick={() => { onPick(item.value); setOpen(false) }} className={`flex w-full px-3.5 py-2 text-start text-sm ${active && value === item.value ? 'font-semibold text-olive' : 'text-muted-foreground'}`}>{item.label}</button>)}
       </div> : null}
     </div>
@@ -183,7 +182,7 @@ function MobileGroupNav<T extends string>({ label, icon: Icon, active, value, it
   const [open, setOpen] = useState(false)
   return (
     <div className="relative flex flex-1 justify-center">
-      {open ? <div className="absolute bottom-[calc(100%+6px)] end-1/2 z-30 w-48 translate-x-1/2 overflow-hidden rounded-xl border border-border-strong bg-panel py-1 shadow-lg">
+      {open ? <div className="menu-fade absolute bottom-[calc(100%+6px)] end-1/2 z-30 w-48 translate-x-1/2 overflow-hidden rounded-xl border border-border-strong bg-panel py-1 shadow-lg">
         {items.map((item) => <button key={item.value} type="button" onClick={() => { onPick(item.value); setOpen(false) }} className={`flex w-full px-3.5 py-2.5 text-start text-sm ${active && value === item.value ? 'font-semibold text-olive' : 'text-muted-foreground'}`}>{item.label}</button>)}
       </div> : null}
       <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-medium ${active ? 'text-olive' : 'text-muted-foreground'}`}>

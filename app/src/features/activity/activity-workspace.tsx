@@ -239,16 +239,18 @@ export function ActivityWorkspace() {
                           </button>
                         </td>
                       </tr>
-                      {expanded ? (
-                        <tr id={`activity-details-${row.id}`} className="border-b border-border bg-highlight/40 last:border-b-0">
-                          <td colSpan={7} className="px-3 py-2.5">
-                            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
-                              <span>معرّف الجهاز <span className="figure break-all text-foreground" dir="ltr">{row.device_id ?? '—'}</span></span>
-                              <span>المكان / الشبكة <span className="figure text-foreground" dir="ltr">{locationLabel(row)}</span></span>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : null}
+                      <tr
+                        id={`activity-details-${row.id}`}
+                        hidden={!expanded}
+                        className="border-b border-border bg-highlight/40 last:border-b-0"
+                      >
+                        <td colSpan={7} className="px-3 py-2.5">
+                          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                            <span>معرّف الجهاز <span className="figure break-all text-foreground" dir="ltr">{row.device_id ?? '—'}</span></span>
+                            <span>المكان / الشبكة <span className="figure text-foreground" dir="ltr">{locationLabel(row)}</span></span>
+                          </div>
+                        </td>
+                      </tr>
                     </Fragment>
                   )
                 })

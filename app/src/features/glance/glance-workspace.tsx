@@ -104,7 +104,7 @@ export function GlanceWorkspace() {
                     key={item.student.id}
                     className={`flex items-center gap-3 border-b border-border py-2.5 last:border-b-0 ${item.student.id === previewId ? 'bg-highlight' : ''}`}
                   >
-                    <span className="grid size-9 flex-none place-items-center rounded-full bg-olive-weak text-sm font-bold text-olive">
+                    <span aria-hidden className="grid size-9 flex-none place-items-center rounded-full bg-olive-weak text-sm font-bold text-olive">
                       {item.student.name.charAt(0)}
                     </span>
                     <div className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{item.student.name}</div>
@@ -179,7 +179,7 @@ function AttentionPreviewPanel({
   return (
     <div className="rounded-xl border border-border-strong bg-panel p-4">
       <div className="flex items-center gap-3">
-        <span className="editorial grid size-11 flex-none place-items-center rounded-full bg-olive text-lg text-white">{item.student.name.charAt(0)}</span>
+        <span aria-hidden className="editorial grid size-11 flex-none place-items-center rounded-full bg-olive text-lg text-white">{item.student.name.charAt(0)}</span>
         <div className="min-w-0">
           <div className="truncate text-sm font-bold text-foreground">{item.student.name}</div>
           <div className="text-[12px] text-muted-foreground">رصيد مستحق على {formatNumber(item.courses)} دورة</div>

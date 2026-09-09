@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { ArrowDownLeft, ChevronLeft, Search } from 'lucide-react'
+import { ArrowDownLeft, ChevronDown, ChevronLeft, Search } from 'lucide-react'
 
 import { ConfigNotice, ErrorNotice } from '@/components/shell/notices'
 import { RouteHeader } from '@/components/shell/route-header'
@@ -122,13 +122,16 @@ function DirectoryRow({ item, selected, onSelect }: { item: StudentAggregate; se
   return (
     <div className={`border-b border-border last:border-b-0 ${selected ? 'bg-highlight' : ''}`}>
       <button type="button" onClick={onSelect} aria-pressed={selected} className="flex w-full items-center gap-3 px-4 py-2.5 text-start">
-        <span className="grid size-9 flex-none place-items-center rounded-full bg-olive-weak text-sm font-bold text-olive">{item.student.name.charAt(0)}</span>
+        <span aria-hidden className="grid size-9 flex-none place-items-center rounded-full bg-olive-weak text-sm font-bold text-olive">{item.student.name.charAt(0)}</span>
         <span className="min-w-0 flex-1 truncate text-sm text-foreground">{item.student.name}</span>
         <span className="text-xs font-medium text-muted-foreground">{statusLabel}</span>
         <Money value={item.remaining} currency={false} className={item.remaining > REMAINING_EPSILON ? 'text-sm font-bold text-warn' : 'text-sm font-bold text-foreground'} />
       </button>
-      <details className="px-4 pb-2 ps-[3.25rem]">
-        <summary className="w-fit cursor-pointer list-none text-[11px] font-medium text-olive">التفاصيل</summary>
+      <details className="group px-4 pb-2 ps-[3.25rem]">
+        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-[11px] font-medium text-olive">
+          <ChevronDown aria-hidden className="size-3 transition-transform group-open:-rotate-180" />
+          التفاصيل
+        </summary>
         <div className="mt-1 text-xs text-faint">
           {item.student.phone ? item.student.phone : 'لا يوجد رقم هاتف'}
           {item.student.idNumber ? ` · ${item.student.idNumber}` : ''}
@@ -159,7 +162,7 @@ function StudentPreviewPanel({
   return (
     <div className="rounded-xl border border-border-strong bg-panel p-4">
       <div className="flex items-center gap-3">
-        <span className="editorial grid size-11 flex-none place-items-center rounded-full bg-olive text-lg text-white">{item.student.name.charAt(0)}</span>
+        <span aria-hidden className="editorial grid size-11 flex-none place-items-center rounded-full bg-olive text-lg text-white">{item.student.name.charAt(0)}</span>
         <div className="min-w-0">
           <div className="truncate text-sm font-bold text-foreground">{item.student.name}</div>
           <div className="text-[12px] text-muted-foreground">

@@ -147,7 +147,7 @@ export function FinancialReportWorkspace() {
           <h2 className="text-base font-bold text-foreground">سجل الحركات المالية</h2>
           <span className="text-[12px] text-faint">من الأحدث</span>
         </div>
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="overflow-x-auto">
             <MovementTable
               view={view}
@@ -298,7 +298,7 @@ function VoucherPreviewPanel({
 }) {
   if (!movement) {
     return (
-      <div className="hidden rounded-xl border border-dashed border-border-strong p-5 text-center text-sm text-faint xl:block">
+      <div className="hidden rounded-xl border border-dashed border-border-strong p-5 text-center text-sm text-faint 2xl:block">
         اختر قيدًا من السجلّ لعرض تفاصيله هنا.
       </div>
     )

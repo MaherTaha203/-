@@ -2,10 +2,10 @@ import { useState } from 'react'
 
 import { ArrowLeft } from 'lucide-react'
 
+import { MIN_PASSWORD_LENGTH, passwordPolicyError } from '@/features/auth/password-policy'
 import { useAuthStore } from '@/store/use-auth-store'
 
 const EMBLEM_SRC = `${import.meta.env.BASE_URL}brand/emblem.jpg`
-const MIN_PASSWORD = 8
 
 const inputClass =
   'h-12 w-full rounded-xl border border-border-strong bg-panel px-4 text-[15px] text-foreground outline-none placeholder:text-faint focus:border-olive focus:ring-2 focus:ring-olive/20'
@@ -24,8 +24,9 @@ export function RecoveryGate() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     setLocalError(null)
-    if (password.length < MIN_PASSWORD) {
-      setLocalError('كلمة المرور يجب أن تتكون من 8 أحرف على الأقل')
+    const policyError = passwordPolicyError(password)
+    if (policyError) {
+      setLocalError(policyError)
       return
     }
     if (password !== confirm) {
@@ -69,7 +70,7 @@ export function RecoveryGate() {
             <input
               type="password"
               autoComplete="new-password"
-              minLength={MIN_PASSWORD}
+              minLength={MIN_PASSWORD_LENGTH}
               required
               value={password}
               onChange={(event) => {
@@ -81,13 +82,16 @@ export function RecoveryGate() {
               }}
               className={inputClass}
             />
+            <span className="mt-1.5 block text-[12px] text-faint">
+              10 أحرف على الأقل، وتشمل أحرفًا لاتينيّة كبيرة وصغيرة وأرقامًا ورمزًا واحدًا على الأقل
+            </span>
           </label>
           <label className="block">
             <span className="mb-1.5 block text-[13px] font-medium text-muted-foreground">تأكيد كلمة المرور</span>
             <input
               type="password"
               autoComplete="new-password"
-              minLength={MIN_PASSWORD}
+              minLength={MIN_PASSWORD_LENGTH}
               required
               value={confirm}
               onChange={(event) => {

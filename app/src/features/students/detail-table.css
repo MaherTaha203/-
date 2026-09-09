@@ -1,4 +1,4 @@
-/* UX-01F: shared detail/table presentation primitives. */
+/* Shared detail/table presentation primitives for the students workspace. */
 .detail-workspace {
   width: min(100%, 1440px);
   margin-inline: auto;

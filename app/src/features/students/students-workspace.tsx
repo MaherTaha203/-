@@ -14,7 +14,7 @@ import { formatVoucherNo } from '@/lib/voucher'
 import { normalizeArabic } from '@/lib/text'
 import { useShellStore } from '@/store/use-shell-store'
 import { useWorkspaceStore } from '@/store/use-workspace-store'
-import '../detail/ux01f.css'
+import './detail-table.css'
 
 const REMAINING_EPSILON = 0.0001
 

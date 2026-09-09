@@ -5,6 +5,7 @@ import { ChevronDown, RefreshCw } from 'lucide-react'
 import { RouteHeader } from '@/components/shell/route-header'
 import { Input } from '@/components/ui/input'
 import { fetchAllRows } from '@/lib/fetch-all'
+import { formatTimestamp } from '@/lib/format'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
 
 
@@ -40,23 +41,6 @@ const ACTION_LABELS: Record<string, string> = {
 
 function actionLabel(action: string) {
   return ACTION_LABELS[action] ?? action
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('ar', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(value))
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat('ar', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(new Date(value))
 }
 
 function locationLabel(row: ActivityRow) {
@@ -213,6 +197,7 @@ export function ActivityWorkspace() {
               ) : (
                 filteredRows.map((row) => {
                   const expanded = expandedRows.has(row.id)
+                  const { date, time } = formatTimestamp(row.changed_at)
                   return (
                     <Fragment key={row.id}>
                       <tr className="border-b border-border align-top last:border-b-0">
@@ -220,8 +205,8 @@ export function ActivityWorkspace() {
                           <div className="font-medium text-foreground">{row.actor_email ?? 'المستخدم'}</div>
                           {row.changed_by ? <div className="figure mt-1 text-[11px] text-muted-foreground" dir="ltr">{row.changed_by}</div> : null}
                         </td>
-                        <td className="figure whitespace-nowrap px-3 py-2.5">{formatDate(row.changed_at)}</td>
-                        <td className="figure whitespace-nowrap px-3 py-2.5">{formatTime(row.changed_at)}</td>
+                        <td className="figure whitespace-nowrap px-3 py-2.5">{date}</td>
+                        <td className="figure whitespace-nowrap px-3 py-2.5">{time}</td>
                         <td className="px-3 py-2.5 text-muted-foreground">{row.source ?? 'النظام'}</td>
                         <td className="px-3 py-2.5 font-semibold text-foreground">{actionLabel(row.action)}</td>
                         <td className="max-w-[300px] px-3 py-2.5 text-foreground">{row.description ?? row.label ?? '—'}</td>

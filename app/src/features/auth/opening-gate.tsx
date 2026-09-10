@@ -9,7 +9,7 @@ const EMBLEM_SRC = `${import.meta.env.BASE_URL}brand/emblem.jpg`
 type Mode = 'signin' | 'forgot'
 
 const inputClass =
-  'h-12 w-full rounded-xl border border-border-strong bg-panel px-4 text-[15px] text-foreground outline-none placeholder:text-faint focus:border-olive focus:ring-2 focus:ring-olive/20'
+  'h-12 w-full rounded-xl border border-border-strong bg-panel px-4 text-[15px] text-foreground outline-none placeholder:text-faint focus:border-olive'
 
 export function OpeningGate() {
   const signIn = useAuthStore((state) => state.signIn)

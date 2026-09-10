@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowDownLeft } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { useForm, type DefaultValues } from 'react-hook-form'
 
 import { ActionSheet } from '@/components/shell/action-sheet'
 import { Button } from '@/components/ui/button'
@@ -20,8 +20,10 @@ import { useVoucherAdminStore } from '@/store/use-voucher-admin-store'
 import { useWorkspaceStore } from '@/store/use-workspace-store'
 import type { FinancialMovement } from '@/types/domain'
 
-function buildDefaults(studentName: string | null): ReceiptVoucherFormValues {
-  return { paymentDate: todayIsoDate(), studentName: studentName ?? '', studentId: '', studentIdNumber: '', studentPhone: '', courseName: '', courseValue: 0, amountReceived: 0, payerName: '', notes: '' }
+function buildDefaults(studentName: string | null): DefaultValues<ReceiptVoucherFormValues> {
+  // Amount fields start empty (not 0) so typing doesn't produce a leading zero
+  // like "0500"; the input shows a grey "0" placeholder instead.
+  return { paymentDate: todayIsoDate(), studentName: studentName ?? '', studentId: '', studentIdNumber: '', studentPhone: '', courseName: '', courseValue: undefined, amountReceived: undefined, payerName: '', notes: '' }
 }
 
 export function ReceiptSheet() {
@@ -101,12 +103,12 @@ export function ReceiptSheet() {
             {isEdit ? <Field label="اسم الطالب">{(control) => <Input {...control} value={editStudentName} readOnly />}</Field> : <StudentPicker form={form} students={students} />}
             <Field label="اسم الدورة" error={form.formState.errors.courseName?.message}>{(control) => <Input placeholder="اكتب اسم الدورة" readOnly={isEdit} {...control} {...form.register('courseName')} />}</Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="قيمة الدورة" error={form.formState.errors.courseValue?.message}>{(control) => <Input type="number" min="0" step="1" readOnly={isEdit} className="figure" {...control} {...form.register('courseValue', { valueAsNumber: true })} />}</Field>
+              <Field label="قيمة الدورة" error={form.formState.errors.courseValue?.message}>{(control) => <Input type="number" min="0" step="1" placeholder="0" readOnly={isEdit} className="figure" {...control} {...form.register('courseValue', { valueAsNumber: true })} />}</Field>
               <Field label="تاريخ الدفع" error={form.formState.errors.paymentDate?.message}>{(control) => <Input type="date" readOnly={isEdit} className="figure" {...control} {...form.register('paymentDate')} />}</Field>
             </div>
             <Field label="المبلغ المقبوض" error={form.formState.errors.amountReceived?.message}>
               {(control) => (
-                <div className="flex items-center gap-2 rounded-xl border border-olive/30 bg-olive-weak/40 px-4 py-1 focus-within:border-olive focus-within:ring-2 focus-within:ring-olive/20">
+                <div className="flex items-center gap-2 rounded-xl border border-olive/30 bg-olive-weak/40 px-4 py-1 focus-within:border-olive">
                   <input type="number" min="1" step="1" inputMode="numeric" readOnly={isEdit} className="figure h-12 w-full bg-transparent text-2xl font-semibold text-foreground outline-none placeholder:text-faint" placeholder="0" {...control} {...form.register('amountReceived', { valueAsNumber: true })} />
                   <span className="text-sm font-medium text-muted-foreground">₪</span>
                 </div>

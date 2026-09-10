@@ -118,6 +118,63 @@ select {
   border-radius: 8px;
 }
 
+/* Form controls show a clean brand-colored border on focus (set per-component)
+   instead of a glow ring/outline. Buttons and links keep the keyboard ring above. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* Route + menu entrance motion — soft, brief, honoring reduced-motion. */
+.route-fade {
+  animation: routeFade 0.22s ease-out;
+}
+@keyframes routeFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.menu-in {
+  animation: menuIn 0.16s ease-out;
+  transform-origin: top;
+}
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Opacity-only entrance for menus that keep a static transform (e.g. the
+   translate-centered mobile menu), so the animation doesn't fight it. */
+.menu-fade {
+  animation: menuFade 0.16s ease-out;
+}
+@keyframes menuFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-fade,
+  .menu-in,
+  .menu-fade {
+    animation: none;
+  }
+}
+
 /* Financial figures: crisp tabular Latin (Inter) digits, isolated from RTL flow. */
 .figure {
   font-family: var(--font-mono);

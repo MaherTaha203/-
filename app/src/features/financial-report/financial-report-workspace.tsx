@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react'
 import { Ban, Eye, Pencil, Printer, RotateCw } from 'lucide-react'
 
 import { ConfigNotice, ErrorNotice } from '@/components/shell/notices'
-import { PositionPanel } from '@/components/shell/position-panel'
 import { RouteHeader } from '@/components/shell/route-header'
 import { FinancialReportPrint } from '@/features/print/financial-report-print'
 import { VoucherPrint } from '@/features/print/voucher-print'
@@ -178,21 +177,43 @@ export function FinancialReportWorkspace() {
 }
 
 function GeneralSummary({ net, totalIn, totalOut, opening, closing, periodLabel }: { net: number; totalIn: number; totalOut: number; opening: number; closing: number; periodLabel: string }) {
+  // One clear hero (the closing balance), two coloured totals, and a proportion
+  // bar — hierarchy over a flat row of five equal figures.
+  const flow = totalIn + totalOut
+  const inPct = flow > 0 ? Math.round((totalIn / flow) * 100) : 0
   return (
-    <section className="border-y border-border py-5">
+    <section className="border-y border-border py-6">
       <div className="mb-4 flex items-baseline justify-between gap-4">
         <h2 className="text-base font-bold text-foreground">ملخص الفترة</h2>
         <span className="text-[12px] text-faint">{periodLabel}</span>
       </div>
-      <div className="grid gap-y-5 sm:grid-cols-2 lg:grid-cols-5 lg:gap-x-8">
-        <BalanceFigure label="الرصيد الافتتاحي" value={opening} />
-        <BalanceFigure label="إجمالي المقبوضات" value={totalIn} tone="in" />
-        <BalanceFigure label="إجمالي المدفوعات" value={totalOut} tone="out" />
-        <BalanceFigure label="صافي التدفق النقدي" value={net} />
-        <BalanceFigure label="الرصيد الختامي" value={closing} strong />
+
+      <div className="text-[11.5px] font-medium text-faint">الرصيد الختاميّ</div>
+      <Money
+        value={closing}
+        currencyClassName="text-[0.34em] text-faint"
+        className={`mt-1 block text-[clamp(2.2rem,5vw,3.2rem)] font-semibold leading-none ${closing < 0 ? 'text-clay' : 'text-foreground'}`}
+      />
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-gold/25 bg-gold-weak/50 p-4">
+          <div className="flex items-center gap-2 text-[12px] font-medium text-muted-foreground"><span className="size-2 rounded-sm bg-gold" aria-hidden />إجمالي المقبوضات</div>
+          <Money value={totalIn} currency={false} className="mt-1.5 block text-2xl font-bold text-gold" />
+        </div>
+        <div className="rounded-xl border border-clay/25 bg-clay-weak/50 p-4">
+          <div className="flex items-center gap-2 text-[12px] font-medium text-muted-foreground"><span className="size-2 rounded-sm bg-clay" aria-hidden />إجمالي المدفوعات</div>
+          <Money value={totalOut} currency={false} className="mt-1.5 block text-2xl font-bold text-clay" />
+        </div>
       </div>
-      <div className="mt-6 border-t border-border pt-5">
-        <PositionPanel net={net} totalIn={totalIn} totalOut={totalOut} label={`صافي التدفق النقدي · ${periodLabel}`} context="مقبوضات − مدفوعات" />
+
+      <div className="mt-5">
+        <div className={`flex h-2 overflow-hidden rounded-full ${totalOut > 0 ? 'bg-clay/70' : 'bg-border'}`} aria-hidden>
+          <div className="h-full rounded-full bg-gold" style={{ width: `${inPct}%` }} />
+        </div>
+        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-[12.5px] text-muted-foreground">
+          <span>صافي التدفّق النقديّ <Money value={net} currency={false} className={`font-semibold ${net < 0 ? 'text-clay' : 'text-foreground'}`} /></span>
+          <span>الرصيد الافتتاحيّ <Money value={opening} currency={false} className="font-semibold text-foreground" /></span>
+        </div>
       </div>
     </section>
   )

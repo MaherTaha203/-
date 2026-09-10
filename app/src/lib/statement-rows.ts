@@ -1,5 +1,9 @@
 import type { FinancialMovement } from '@/types/domain'
 
+// Shared statement helpers: order movements chronologically and attach a running
+// balance. Used by both the on-screen general statement and its printed form, so
+// the two always agree row-for-row.
+
 export type RunningMovement = FinancialMovement & {
   runningBalance: number
 }

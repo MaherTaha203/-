@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ComponentType } from 'react'
 
 import { ArrowDownLeft, ArrowUpRight, ChevronDown, FileText, Home, LogOut, Settings, Users } from 'lucide-react'
 
+import { useApplyRootSettings, useIdleLogout } from '@/hooks/use-app-preferences'
 import { ReceiptSheet } from '@/features/receipt-voucher/receipt-sheet'
 import { PaymentSheet } from '@/features/payment-voucher/payment-sheet'
 import { StudentEditSheet } from '@/features/students/student-edit-sheet'
@@ -12,6 +13,7 @@ import { Toaster } from '@/components/ui/toast'
 import { StudentsWorkspace } from '@/features/students/students-workspace'
 import { FinancialReportWorkspace } from '@/features/financial-report/financial-report-workspace'
 import { SettingsWorkspace } from '@/features/settings/settings-workspace'
+import { BackupWorkspace } from '@/features/settings/backup-workspace'
 import { useAuthStore } from '@/store/use-auth-store'
 import { useShellStore, type ReportView, type SettingsView, type ShellRoute, type StudentView } from '@/store/use-shell-store'
 import { useWorkspaceStore } from '@/store/use-workspace-store'
@@ -31,6 +33,7 @@ const STUDENT_MENU: MenuItem<StudentView>[] = [
 
 const SETTINGS_MENU: MenuItem<SettingsView>[] = [
   { value: 'system', label: 'الإعدادات' },
+  { value: 'backup', label: 'النسخ الاحتياطي' },
   { value: 'activity', label: 'سجل التدقيق' },
 ]
 
@@ -45,7 +48,9 @@ function CurrentView({ route, studentView, settingsView }: { route: ShellRoute; 
     case 'activity':
       return <ActivityWorkspace />
     case 'settings':
-      return settingsView === 'system' ? <SettingsWorkspace /> : <ActivityWorkspace />
+      if (settingsView === 'backup') return <BackupWorkspace />
+      if (settingsView === 'activity') return <ActivityWorkspace />
+      return <SettingsWorkspace />
   }
 }
 
@@ -66,6 +71,9 @@ export function AppShell() {
   const signOut = useAuthStore((state) => state.signOut)
   const load = useWorkspaceStore((state) => state.load)
   const loaded = useWorkspaceStore((state) => state.loaded)
+
+  useApplyRootSettings()
+  useIdleLogout(signOut)
 
   useEffect(() => {
     if (!loaded) void load()

@@ -117,9 +117,6 @@ export function StudentEditSheet() {
           <Check className="size-4" />
           {isBusy ? 'جارٍ الحفظ…' : 'حفظ بيانات الطالب'}
         </Button>
-        <p className="text-center text-[11.5px] text-faint">
-          يُصحّح هذا البيانات التعريفيّة فقط — لا يغيّر أي سند أو مبلغ.
-        </p>
       </form>
     </ActionSheet>
   )

@@ -39,7 +39,6 @@ test('opens the activity log as a read-only workspace', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'البحث في سجل النشاط' })).toBeVisible()
   await expect(page.getByRole('combobox', { name: 'تصفية حسب المصدر' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'تحديث السجل' })).toBeVisible()
-  await expect(page.getByText('السجل للقراءة والمراجعة فقط')).toBeVisible()
   await expect(page.getByText('لا توجد سجلات مطابقة.')).toBeVisible()
   await expect(page.getByRole('button', { name: /استعادة|إعادة تفعيل/ })).toHaveCount(0)
 })

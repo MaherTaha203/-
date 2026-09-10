@@ -12,8 +12,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { VoucherPrint } from '@/features/print/voucher-print'
 import { receiptVoucherFormSchema, type ReceiptVoucherFormValues } from '@/features/receipt-voucher/schema'
 import { StudentPicker } from '@/features/receipt-voucher/student-picker'
-import { todayIsoDate } from '@/lib/format'
+import { formatNumber, todayIsoDate } from '@/lib/format'
 import { useMoneyInStore } from '@/store/use-money-in-store'
+import { useSettingsStore } from '@/store/use-settings-store'
 import { useShellStore } from '@/store/use-shell-store'
 import { useToastStore } from '@/components/ui/use-toast-store'
 import { useVoucherAdminStore } from '@/store/use-voucher-admin-store'
@@ -43,6 +44,10 @@ export function ReceiptSheet() {
   const clearAdminError = useVoucherAdminStore((state) => state.clearError)
   const reloadWorkspace = useWorkspaceStore((state) => state.load)
   const students = useWorkspaceStore((state) => state.students)
+  const currencySymbol = useSettingsStore((state) => state.settings.currencySymbol)
+  const maxAmount = useSettingsStore((state) => state.settings.maxVoucherAmount)
+  const blockFutureDate = useSettingsStore((state) => state.settings.blockFutureDate)
+  const maxDate = blockFutureDate ? todayIsoDate() : undefined
   const [loadingEdit, setLoadingEdit] = useState(isEdit)
   const [editStudentName, setEditStudentName] = useState('')
   const [savedVoucher, setSavedVoucher] = useState<FinancialMovement | null>(null)
@@ -76,6 +81,18 @@ export function ReceiptSheet() {
       return
     }
 
+    // Soft data-entry guard: the operator's configurable ceiling catches a
+    // fat-fingered extra zero before it reaches the server. The DB financial
+    // firewall stays the authoritative limit.
+    if (values.amountReceived > maxAmount) {
+      form.setError('amountReceived', { message: `المبلغ أكبر من الحدّ المسموح (${formatNumber(maxAmount)})` })
+      return
+    }
+    if (values.courseValue > maxAmount) {
+      form.setError('courseValue', { message: `القيمة أكبر من الحدّ المسموح (${formatNumber(maxAmount)})` })
+      return
+    }
+
     const saved = await saveReceiptVoucher(values)
     if (!saved) return
 
@@ -97,27 +114,26 @@ export function ReceiptSheet() {
       <ActionSheet title={isEdit ? 'تعديل سند قبض' : 'سند قبض'} onClose={closeOverlay}>
         {showError ? <div role="alert" className="mb-4 rounded-xl border border-clay/25 bg-clay-weak px-4 py-3 text-sm text-clay">{isEdit ? adminError ?? 'تعذّر حفظ التعديل.' : error ?? 'تعذّر حفظ السند.'}</div> : null}
         {loadingEdit ? <p className="py-10 text-center text-sm text-faint">جارٍ تحميل السند…</p> : savedVoucher ? (
-          <div className="py-3"><p className="mb-4 text-center text-sm font-semibold text-foreground">تم حفظ السند. يمكنك طباعته الآن.</p><Button type="button" variant="outline" className="w-full" onClick={closeOverlay}>إغلاق بعد الطباعة</Button></div>
+          <div className="py-3"><p className="mb-4 text-center text-sm font-semibold text-foreground">تم حفظ السند</p><Button type="button" variant="outline" className="w-full" onClick={closeOverlay}>إغلاق بعد الطباعة</Button></div>
         ) : (
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
             {isEdit ? <Field label="اسم الطالب">{(control) => <Input {...control} value={editStudentName} readOnly />}</Field> : <StudentPicker form={form} students={students} />}
             <Field label="اسم الدورة" error={form.formState.errors.courseName?.message}>{(control) => <Input placeholder="اكتب اسم الدورة" readOnly={isEdit} {...control} {...form.register('courseName')} />}</Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="قيمة الدورة" error={form.formState.errors.courseValue?.message}>{(control) => <Input type="number" min="0" step="1" placeholder="0" readOnly={isEdit} className="figure" {...control} {...form.register('courseValue', { valueAsNumber: true })} />}</Field>
-              <Field label="تاريخ الدفع" error={form.formState.errors.paymentDate?.message}>{(control) => <Input type="date" readOnly={isEdit} className="figure" {...control} {...form.register('paymentDate')} />}</Field>
+              <Field label="تاريخ الدفع" error={form.formState.errors.paymentDate?.message}>{(control) => <Input type="date" max={maxDate} readOnly={isEdit} className="figure" {...control} {...form.register('paymentDate')} />}</Field>
             </div>
             <Field label="المبلغ المقبوض" error={form.formState.errors.amountReceived?.message}>
               {(control) => (
                 <div className="flex items-center gap-2 rounded-xl border border-olive/30 bg-olive-weak/40 px-4 py-1 focus-within:border-olive">
                   <input type="number" min="1" step="1" inputMode="numeric" readOnly={isEdit} className="figure h-12 w-full bg-transparent text-2xl font-semibold text-foreground outline-none placeholder:text-faint" placeholder="0" {...control} {...form.register('amountReceived', { valueAsNumber: true })} />
-                  <span className="text-sm font-medium text-muted-foreground">₪</span>
+                  <span className="text-sm font-medium text-muted-foreground">{currencySymbol}</span>
                 </div>
               )}
             </Field>
             <Field label="اسم الدافع (اختياري)" error={form.formState.errors.payerName?.message}>{(control) => <Input placeholder="اسم من يدفع نيابةً عن الطالب" {...control} {...form.register('payerName')} />}</Field>
             <Field label="الملاحظات (اختياري)" error={form.formState.errors.notes?.message}>{(control) => <Textarea placeholder="ملاحظات اختيارية" {...control} {...form.register('notes')} />}</Field>
             <Button type="submit" size="lg" className="w-full" disabled={busy}><ArrowDownLeft className="size-4" />{busy ? 'جارٍ الحفظ…' : isEdit ? 'حفظ التعديل' : 'حفظ سند القبض'}</Button>
-            <p className="text-center text-[11.5px] text-faint">Enter للتالي · Ctrl+Enter للحفظ · Esc للإغلاق</p>
           </form>
         )}
       </ActionSheet>

@@ -111,7 +111,7 @@ export function StudentsWorkspace() {
               </div>
 
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-base font-bold text-foreground">كشف الحساب — مُستخرج من السندات</h3>
+                <h3 className="text-base font-bold text-foreground">كشف الحساب</h3>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button variant="quiet" size="sm" onClick={() => openEditStudent(active.student.id)}><Pencil className="size-4" />تعديل بيانات الطالب</Button>
                   <Button variant="quiet" size="sm" onClick={() => setPrinting(true)}><Printer className="size-4" />طباعة الكشف</Button>
@@ -121,22 +121,22 @@ export function StudentsWorkspace() {
 
               <div className="detail-table-wrap">
                 <table className="border-collapse text-sm">
-                  <thead><tr className="text-[11px] tracking-wide text-faint">
-                    <th className="border-b border-border px-2 py-2.5 text-start font-semibold">التاريخ</th>
-                    <th className="border-b border-border px-2 py-2.5 text-start font-semibold">البيان</th>
-                    <th className="border-b border-border px-2 py-2.5 text-start font-semibold">الدورة</th>
-                    <th className="border-b border-border px-2 py-2.5 text-end font-semibold">قيمة الدورة</th>
-                    <th className="border-b border-border px-2 py-2.5 text-end font-semibold">المسدَّد</th>
-                    <th className="border-b border-border px-2 py-2.5 text-end font-semibold">الرصيد المستحق</th>
+                  <thead><tr className="text-[11.5px] tracking-wide text-faint">
+                    <th className="border-b border-border px-2.5 py-3 text-start font-semibold">التاريخ</th>
+                    <th className="border-b border-border px-2.5 py-3 text-start font-semibold">رقم السند</th>
+                    <th className="border-b border-border px-2.5 py-3 text-start font-semibold">الدورة</th>
+                    <th className="border-b border-border px-2.5 py-3 text-end font-semibold">قيمة الدورة</th>
+                    <th className="border-b border-border px-2.5 py-3 text-end font-semibold">المسدَّد</th>
+                    <th className="border-b border-border px-2.5 py-3 text-end font-semibold">الرصيد المستحق</th>
                   </tr></thead>
                   <tbody>{activeLines.length > 0 ? activeLines.map((line) => <tr key={line.id}>
-                    <td className="border-b border-border px-2 py-3">{formatDate(line.voucherDate)}</td>
-                    <td className="border-b border-border px-2 py-3">سند قبض — رقم {formatVoucherNo(line.voucherNumber)}</td>
-                    <td className="border-b border-border px-2 py-3 text-muted-foreground">{line.courseName}</td>
-                    <td className="figure border-b border-border px-2 py-3 text-end">{formatNumber(line.courseValue)}</td>
-                    <td className="figure border-b border-border px-2 py-3 text-end font-medium">{formatNumber(line.amountReceived)}</td>
-                    <td className="figure border-b border-border px-2 py-3 text-end font-semibold">{formatNumber(line.remainingBalance)}</td>
-                  </tr>) : <tr><td colSpan={6} className="px-2 py-10 text-center text-sm text-faint">لا توجد حركات.</td></tr>}</tbody>
+                    <td className="figure whitespace-nowrap border-b border-border px-2.5 py-3.5">{formatDate(line.voucherDate)}</td>
+                    <td className="figure border-b border-border px-2.5 py-3.5 text-muted-foreground">{formatVoucherNo(line.voucherNumber)}</td>
+                    <td className="border-b border-border px-2.5 py-3.5 text-muted-foreground">{line.courseName}</td>
+                    <td className="figure border-b border-border px-2.5 py-3.5 text-end">{formatNumber(line.courseValue)}</td>
+                    <td className="figure border-b border-border px-2.5 py-3.5 text-end font-medium">{formatNumber(line.amountReceived)}</td>
+                    <td className={`figure border-b border-border px-2.5 py-3.5 text-end font-bold ${line.remainingBalance > REMAINING_EPSILON ? 'text-warn' : 'text-foreground'}`}>{formatNumber(line.remainingBalance)}</td>
+                  </tr>) : <tr><td colSpan={6} className="px-2.5 py-10 text-center text-sm text-faint">لا توجد حركات.</td></tr>}</tbody>
                 </table>
               </div>
             </>

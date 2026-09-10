@@ -243,10 +243,6 @@ export function ActivityWorkspace() {
             </tbody>
           </table>
         </div>
-
-        <p className="mt-4 text-xs text-muted-foreground">
-          السجل للقراءة والمراجعة فقط، وترتيبه زمنيًا تنازليًا. لا توجد فيه إجراءات لتعديل أو حذف الأحداث.
-        </p>
       </section>
     </div>
   )

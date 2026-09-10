@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/format'
+import { useSettingsStore } from '@/store/use-settings-store'
 
 type MoneySign = 'plus' | 'minus' | 'none'
 
@@ -29,13 +30,14 @@ export function Money({
   sign = 'none',
   currency = true,
 }: MoneyProps) {
+  const currencySymbol = useSettingsStore((state) => state.settings.currencySymbol)
   return (
     <span className={cn('figure', className)}>
       {SIGN_GLYPH[sign]}
       {formatNumber(value)}
       {currency ? (
         <span className={cn('ms-0.5 font-sans text-[0.72em] text-faint', currencyClassName)}>
-          ₪
+          {currencySymbol}
         </span>
       ) : null}
     </span>

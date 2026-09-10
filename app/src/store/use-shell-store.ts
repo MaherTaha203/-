@@ -6,7 +6,7 @@ import { create } from 'zustand'
 
 export type ShellRoute = 'home' | 'students' | 'report' | 'activity' | 'settings'
 export type StudentView = 'directory' | 'statement'
-export type SettingsView = 'system' | 'activity'
+export type SettingsView = 'system' | 'activity' | 'backup'
 export type ShellOverlay = 'receive' | 'expense' | 'student' | null
 export type ReportView = 'general' | 'receipts' | 'payments'
 

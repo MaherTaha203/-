@@ -132,10 +132,6 @@ export function OpeningGate() {
               </>
             ) : (
               <>
-                <p className="text-[13.5px] leading-6 text-muted-foreground">
-                  أدخل بريد المشغّل وسنرسل إليك رابطًا لإعادة تعيين كلمة المرور.
-                </p>
-
                 {error ? (
                   <div role="alert" className="rounded-xl border border-clay/25 bg-clay-weak px-4 py-3 text-sm text-clay">
                     {error}

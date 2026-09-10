@@ -1,22 +1,41 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 
 import { RouteHeader } from '@/components/shell/route-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { BackupRestore } from '@/features/settings/backup-restore'
+import { useToastStore } from '@/components/ui/use-toast-store'
+import { ChangePasswordDialog } from '@/features/settings/change-password-dialog'
+import { Segmented, SettingRow, TextSetting, Toggle, type SegmentOption } from '@/features/settings/settings-controls'
 import { recordActivityEvent } from '@/lib/activity-log'
-import { DEFAULT_CENTER_SETTINGS, getCenterSettings, saveCenterSettings, type CenterSettings } from '@/lib/center-settings'
 import { useAuthStore } from '@/store/use-auth-store'
+import { useSettingsStore } from '@/store/use-settings-store'
+import { useShellStore } from '@/store/use-shell-store'
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-3.5 last:border-b-0">
-      <span className="text-[13px] text-muted-foreground">{label}</span>
-      <span className="text-sm text-foreground">{children}</span>
-    </div>
-  )
-}
+const DATE_FORMAT_OPTIONS: SegmentOption<'dmy' | 'ymd'>[] = [
+  { value: 'dmy', label: 'DD/MM/YYYY' },
+  { value: 'ymd', label: 'YYYY/MM/DD' },
+]
+
+const DENSITY_OPTIONS: SegmentOption<'comfortable' | 'compact'>[] = [
+  { value: 'comfortable', label: 'مريح' },
+  { value: 'compact', label: 'مضغوط' },
+]
+
+const PERIOD_OPTIONS: SegmentOption<'all' | 'month' | 'week'>[] = [
+  { value: 'all', label: 'الكل' },
+  { value: 'month', label: 'الشهر' },
+  { value: 'week', label: 'الأسبوع' },
+]
+
+const AUTO_LOGOUT_OPTIONS: SegmentOption<0 | 15 | 30 | 60>[] = [
+  { value: 0, label: 'معطّل' },
+  { value: 15, label: '15 د' },
+  { value: 30, label: '30 د' },
+  { value: 60, label: '60 د' },
+]
+
+// A logo must stay small enough to embed in localStorage and every printed sheet.
+const MAX_LOGO_BYTES = 400 * 1024
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -33,104 +52,165 @@ export function SettingsWorkspace() {
   const session = useAuthStore((state) => state.session)
   const signOut = useAuthStore((state) => state.signOut)
   const email = session?.user?.email ?? '—'
-  const [center, setCenter] = useState<CenterSettings>(() => getCenterSettings())
-  const [isSaving, setIsSaving] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+  const settings = useSettingsStore((state) => state.settings)
+  const update = useSettingsStore((state) => state.update)
+  const reset = useSettingsStore((state) => state.reset)
+  const navigateSettings = useShellStore((state) => state.navigateSettings)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const [showChangePassword, setShowChangePassword] = useState(false)
 
-  function updateField(field: keyof CenterSettings, value: string) {
-    setCenter((current) => ({ ...current, [field]: value }))
-    setMessage(null)
-  }
-
-  function handleSave() {
-    setIsSaving(true)
-    saveCenterSettings(center)
-    setCenter(getCenterSettings())
-    setMessage('تم حفظ بيانات المركز')
-    void recordActivityEvent({
-      entity: 'settings',
-      action: 'edit',
-      label: 'بيانات المركز',
-      description: 'تعديل بيانات المركز المحلية',
-    })
-    setIsSaving(false)
+  function handleLogoChosen(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      useToastStore.getState().show('يُسمح بملفّات الصور فقط')
+      return
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      useToastStore.getState().show('حجم الشعار كبير — الحدّ الأقصى 400 كيلوبايت')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        update({ logo: reader.result })
+        void recordActivityEvent({ entity: 'settings', action: 'edit', label: 'شعار المركز', description: 'تحديث شعار المركز' })
+        useToastStore.getState().show('تم تحديث الشعار')
+      }
+    }
+    reader.onerror = () => useToastStore.getState().show('تعذّرت قراءة ملفّ الشعار')
+    reader.readAsDataURL(file)
   }
 
   function handleReset() {
-    setCenter((current) => ({ ...current, name: DEFAULT_CENTER_SETTINGS.name }))
-    setMessage('تمت إعادة اسم المركز الافتراضي')
-    void recordActivityEvent({
-      entity: 'settings',
-      action: 'edit',
-      label: 'اسم المركز',
-      description: 'إعادة اسم المركز إلى القيمة الافتراضية',
-    })
+    reset()
+    void recordActivityEvent({ entity: 'settings', action: 'edit', label: 'الإعدادات', description: 'إعادة كل الإعدادات إلى الافتراضي' })
+    useToastStore.getState().show('أُعيدت الإعدادات إلى الافتراضي')
   }
 
   return (
     <div>
       <RouteHeader eyebrow="الإعدادات" title="الإعدادات" />
 
-      <div className="grid w-full max-w-[1080px] gap-6">
-        <Group title="بيانات المركز">
-          <div className="grid gap-4 py-4 sm:grid-cols-2">
-            <label className="grid gap-1.5">
-              <span className="text-[13px] text-muted-foreground">اسم المركز</span>
-              <Input value={center.name} onChange={(event) => updateField('name', event.target.value)} />
-            </label>
-            <label className="grid gap-1.5">
-              <span className="text-[13px] text-muted-foreground">اسم المسؤول</span>
-              <Input value={center.responsibleName} onChange={(event) => updateField('responsibleName', event.target.value)} />
-            </label>
-            <label className="grid gap-1.5">
-              <span className="text-[13px] text-muted-foreground">الهاتف</span>
-              <Input dir="ltr" inputMode="tel" value={center.phone} onChange={(event) => updateField('phone', event.target.value)} />
-            </label>
-            <label className="grid gap-1.5">
-              <span className="text-[13px] text-muted-foreground">العنوان</span>
-              <Input value={center.address} onChange={(event) => updateField('address', event.target.value)} />
-            </label>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 border-t border-border py-4">
-            <Button size="sm" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'جارٍ الحفظ…' : 'حفظ بيانات المركز'}
+      <div className="grid w-full max-w-[880px] gap-6">
+        <Group title="بيانات المركز والمستندات">
+          <SettingRow label="اسم المركز">
+            <TextSetting className="w-64" value={settings.name} onCommit={(name) => update({ name })} />
+          </SettingRow>
+          <SettingRow label="اسم المسؤول">
+            <TextSetting className="w-64" value={settings.responsibleName} onCommit={(responsibleName) => update({ responsibleName })} />
+          </SettingRow>
+          <SettingRow label="هاتف المركز">
+            <TextSetting className="figure w-64" dir="ltr" inputMode="tel" value={settings.phone} onCommit={(phone) => update({ phone })} />
+          </SettingRow>
+          <SettingRow label="عنوان المركز">
+            <TextSetting className="w-64" value={settings.address} onCommit={(address) => update({ address })} />
+          </SettingRow>
+          <SettingRow label="شعار المركز">
+            <div className="flex items-center gap-3">
+              {settings.logo ? (
+                <img src={settings.logo} alt="شعار المركز" className="size-11 rounded-lg object-cover ring-1 ring-border-strong" />
+              ) : (
+                <span className="grid size-11 place-items-center rounded-lg border border-dashed border-border-strong text-[10px] text-faint">
+                  لا شعار
+                </span>
+              )}
+              <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoChosen} className="hidden" />
+              <Button variant="quiet" size="sm" onClick={() => logoInputRef.current?.click()}>
+                {settings.logo ? 'تغيير' : 'رفع'}
+              </Button>
+              {settings.logo ? (
+                <Button variant="quiet" size="sm" onClick={() => update({ logo: '' })}>
+                  إزالة
+                </Button>
+              ) : null}
+            </div>
+          </SettingRow>
+          <SettingRow label="الرقم الضريبي / رقم الترخيص">
+            <TextSetting className="figure w-64" dir="ltr" value={settings.taxId} onCommit={(taxId) => update({ taxId })} />
+          </SettingRow>
+          <SettingRow label="نص تذييل السند المطبوع">
+            <TextSetting className="w-64" value={settings.voucherFooter} onCommit={(voucherFooter) => update({ voucherFooter })} />
+          </SettingRow>
+        </Group>
+
+        <Group title="السندات والأرقام">
+          <SettingRow label="رمز العملة">
+            <TextSetting className="w-24 text-center" maxLength={6} value={settings.currencySymbol} onCommit={(currencySymbol) => update({ currencySymbol })} />
+          </SettingRow>
+          <SettingRow label="الحدّ الأعلى للمبلغ في السند">
+            <TextSetting className="figure w-40 text-center" dir="ltr" inputMode="numeric" value={String(settings.maxVoucherAmount)} onCommit={(value) => update({ maxVoucherAmount: Number(value) })} />
+          </SettingRow>
+          <SettingRow label="تنسيق التاريخ">
+            <Segmented ariaLabel="تنسيق التاريخ" value={settings.dateFormat} options={DATE_FORMAT_OPTIONS} onChange={(dateFormat) => update({ dateFormat })} />
+          </SettingRow>
+          <SettingRow label="اشتراط سبب عند الإبطال">
+            <Toggle checked={settings.requireCancelReason} onChange={(requireCancelReason) => update({ requireCancelReason })} />
+          </SettingRow>
+          <SettingRow label="تأكيد إضافيّ قبل الإبطال">
+            <Toggle checked={settings.doubleConfirmCancel} onChange={(doubleConfirmCancel) => update({ doubleConfirmCancel })} />
+          </SettingRow>
+          <SettingRow label="منع تأريخ سند في المستقبل">
+            <Toggle checked={settings.blockFutureDate} onChange={(blockFutureDate) => update({ blockFutureDate })} />
+          </SettingRow>
+        </Group>
+
+        <Group title="العرض والتقارير">
+          <SettingRow label="عدد طلاب المتابعة في الرئيسية">
+            <TextSetting className="figure w-24 text-center" dir="ltr" inputMode="numeric" value={String(settings.attentionCount)} onCommit={(value) => update({ attentionCount: Number(value) })} />
+          </SettingRow>
+          <SettingRow label="كثافة الجداول">
+            <Segmented ariaLabel="كثافة الجداول" value={settings.tableDensity} options={DENSITY_OPTIONS} onChange={(tableDensity) => update({ tableDensity })} />
+          </SettingRow>
+          <SettingRow label="تفعيل حركات الواجهة">
+            <Toggle checked={settings.enableMotion} onChange={(enableMotion) => update({ enableMotion })} />
+          </SettingRow>
+          <SettingRow label="طيّ ملخّص كشف الحساب افتراضيًّا">
+            <Toggle checked={settings.collapseStatementSummary} onChange={(collapseStatementSummary) => update({ collapseStatementSummary })} labelOn="مطويّ" labelOff="مفتوح" />
+          </SettingRow>
+          <SettingRow label="الفترة الافتراضية للتقارير">
+            <Segmented ariaLabel="الفترة الافتراضية" value={settings.defaultReportPeriod} options={PERIOD_OPTIONS} onChange={(defaultReportPeriod) => update({ defaultReportPeriod })} />
+          </SettingRow>
+        </Group>
+
+        <Group title="النسخ الاحتياطي">
+          <SettingRow label="النسخ الاحتياطي والاستعادة">
+            <Button variant="quiet" size="sm" onClick={() => navigateSettings('backup')}>
+              فتح صفحة النسخ الاحتياطي
             </Button>
-            <Button variant="quiet" size="sm" onClick={handleReset}>
-              إعادة الاسم الافتراضي
-            </Button>
-            {message ? <span className="text-sm font-medium text-gold">{message}</span> : null}
-          </div>
-          <p className="pb-4 text-xs leading-6 text-muted-foreground">
-            تستخدم هذه البيانات في ترويسة المستندات المطبوعة والتقارير.
-          </p>
+          </SettingRow>
         </Group>
 
-        <Group title="الإعدادات المالية">
-          <Row label="العملة">شيكل (₪)</Row>
-          <Row label="تنسيق التاريخ">
-            <span className="figure">DD/MM/YYYY</span>
-          </Row>
-          <Row label="ترقيم سندات القبض">تلقائيّ متسلسل</Row>
-          <Row label="ترقيم سندات الصرف">تلقائيّ متسلسل</Row>
-        </Group>
-
-        <Group title="النسخ الاحتياطي والاستعادة">
-          <BackupRestore />
-        </Group>
-
-        <Group title="الحساب">
-          <Row label="البريد الإلكتروني">
-            <span className="figure" dir="ltr">
+        <Group title="الحساب والأمان">
+          <SettingRow label="البريد الإلكتروني">
+            <span className="figure text-sm text-foreground" dir="ltr">
               {email}
             </span>
-          </Row>
-          <div className="py-4">
+          </SettingRow>
+          <SettingRow label="كلمة المرور">
+            <Button variant="quiet" size="sm" onClick={() => setShowChangePassword(true)}>
+              تغيير كلمة المرور
+            </Button>
+          </SettingRow>
+          <SettingRow label="تسجيل الخروج التلقائي بعد خمول">
+            <Segmented ariaLabel="تسجيل الخروج التلقائي" value={settings.autoLogoutMinutes} options={AUTO_LOGOUT_OPTIONS} onChange={(autoLogoutMinutes) => update({ autoLogoutMinutes })} />
+          </SettingRow>
+          <SettingRow label="الجلسة">
             <Button variant="quiet" size="sm" onClick={() => void signOut()}>
               تسجيل الخروج
             </Button>
-          </div>
+          </SettingRow>
         </Group>
+
+        <div className="flex justify-end">
+          <Button variant="quiet" size="sm" onClick={handleReset}>
+            إعادة كل الإعدادات إلى الافتراضي
+          </Button>
+        </div>
       </div>
+
+      {showChangePassword ? <ChangePasswordDialog onClose={() => setShowChangePassword(false)} /> : null}
     </div>
   )
 }

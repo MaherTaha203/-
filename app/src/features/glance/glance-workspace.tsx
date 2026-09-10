@@ -8,11 +8,13 @@ import { Money } from '@/components/ui/money'
 import { Skeleton, SkeletonRows } from '@/components/ui/skeleton'
 import { aggregateStudents, attentionList, financialTotals, type StudentAggregate } from '@/lib/aggregate'
 import { formatNumber } from '@/lib/format'
+import { useSettingsStore } from '@/store/use-settings-store'
 import { useShellStore } from '@/store/use-shell-store'
 import { useWorkspaceStore } from '@/store/use-workspace-store'
 
-const ATTENTION_LIMIT = 5
-const ATTENTION_COLLAPSED = 3
+// How many attention rows the list can reveal in total ("عرض المزيد" cap). The
+// collapsed count — how many show first — is operator-configurable.
+const ATTENTION_LIMIT = 10
 
 // The Glance is a work entry point, not a dashboard: one cash position, a short
 // attention list, and the day's actions. Figures remain derived from vouchers.
@@ -30,6 +32,8 @@ export function GlanceWorkspace() {
   const openReceiveFor = useShellStore((state) => state.openReceiveFor)
   const navigateStudents = useShellStore((state) => state.navigateStudents)
 
+  const attentionCollapsed = useSettingsStore((state) => state.settings.attentionCount)
+
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [showAllAttention, setShowAllAttention] = useState(false)
 
@@ -38,7 +42,7 @@ export function GlanceWorkspace() {
     () => attentionList(aggregateStudents(students, statementLines)).slice(0, ATTENTION_LIMIT),
     [students, statementLines],
   )
-  const visibleAttention = showAllAttention ? attention : attention.slice(0, ATTENTION_COLLAPSED)
+  const visibleAttention = showAllAttention ? attention : attention.slice(0, attentionCollapsed)
   const preview = useMemo(
     () => (previewId ? attention.find((item) => item.student.id === previewId) ?? null : null),
     [attention, previewId],
@@ -49,9 +53,9 @@ export function GlanceWorkspace() {
       <ConfigNotice />
       <ErrorNotice message={error} onDismiss={clearError} onRetry={reload} />
 
-      <header className="space-y-1.5">
-        <div className="text-[12px] font-bold tracking-wide text-olive">أرض كنعان</div>
-        <h1 className="editorial text-[clamp(1.8rem,3vw,2.5rem)] text-foreground">الرئيسية</h1>
+      <header className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+        <h1 className="editorial text-[clamp(1.5rem,2.6vw,1.9rem)] text-foreground">الرئيسية</h1>
+        <div className="text-[11.5px] font-bold tracking-wide text-olive">أرض كنعان</div>
       </header>
 
       <section aria-label="الرصيد النقديّ للمركز" className="border-y border-border py-7 sm:py-8">
@@ -113,13 +117,13 @@ export function GlanceWorkspace() {
                     </Button>
                   </div>
                 ))}
-                {!showAllAttention && attention.length > ATTENTION_COLLAPSED ? (
+                {!showAllAttention && attention.length > attentionCollapsed ? (
                   <button
                     type="button"
                     onClick={() => setShowAllAttention(true)}
                     className="w-full py-2.5 text-center text-xs font-semibold text-olive"
                   >
-                    عرض المزيد ({attention.length - ATTENTION_COLLAPSED})
+                    عرض المزيد ({attention.length - attentionCollapsed})
                   </button>
                 ) : null}
               </div>

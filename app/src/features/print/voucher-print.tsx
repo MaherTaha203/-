@@ -2,7 +2,7 @@ import { PrintPreview } from '@/components/print/print-preview'
 import { amountInWords } from '@/lib/amount-in-words'
 import { formatDate, formatNumber } from '@/lib/format'
 import { formatVoucherNo, voucherTypeLabel } from '@/lib/voucher'
-import { getCenterSettings } from '@/lib/center-settings'
+import { getSettings } from '@/store/use-settings-store'
 import type { FinancialMovement } from '@/types/domain'
 
 type VoucherPrintProps = {
@@ -18,7 +18,8 @@ export function VoucherPrint({ movement, onClose }: VoucherPrintProps) {
   const isReceipt = movement.movementType === 'receipt'
   const typeLabel = voucherTypeLabel(movement.movementType)
   const voucherNo = formatVoucherNo(movement.voucherNumber)
-  const centerName = getCenterSettings().name
+  const settings = getSettings()
+  const centerName = settings.name
   const words = amountInWords(movement.amount)
 
   return (
@@ -55,7 +56,7 @@ export function VoucherPrint({ movement, onClose }: VoucherPrintProps) {
                 {isReceipt ? 'المبلغ المقبوض' : 'المبلغ المدفوع'}
               </div>
               <div className={`figure mt-1 text-3xl font-bold ${INK}`}>
-                {formatNumber(movement.amount)} <span className="text-lg font-medium text-[#64748b]">₪</span>
+                {formatNumber(movement.amount)} <span className="text-lg font-medium text-[#64748b]">{settings.currencySymbol}</span>
               </div>
             </div>
           </div>

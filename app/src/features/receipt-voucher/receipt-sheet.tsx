@@ -2,17 +2,18 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowDownLeft } from 'lucide-react'
-import { useForm, type DefaultValues } from 'react-hook-form'
+import { useForm, useWatch, type DefaultValues } from 'react-hook-form'
 
 import { ActionSheet } from '@/components/shell/action-sheet'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { SmartDateInput } from '@/components/ui/smart-date-input'
 import { Textarea } from '@/components/ui/textarea'
 import { VoucherPrint } from '@/features/print/voucher-print'
 import { receiptVoucherFormSchema, type ReceiptVoucherFormValues } from '@/features/receipt-voucher/schema'
 import { StudentPicker } from '@/features/receipt-voucher/student-picker'
-import { formatNumber, todayIsoDate } from '@/lib/format'
+import { formatDate, formatNumber, todayIsoDate } from '@/lib/format'
 import { useMoneyInStore } from '@/store/use-money-in-store'
 import { useSettingsStore } from '@/store/use-settings-store'
 import { useShellStore } from '@/store/use-shell-store'
@@ -53,6 +54,7 @@ export function ReceiptSheet() {
   const [savedVoucher, setSavedVoucher] = useState<FinancialMovement | null>(null)
 
   const form = useForm<ReceiptVoucherFormValues>({ resolver: zodResolver(receiptVoucherFormSchema), defaultValues: buildDefaults(prefillName) })
+  const paymentDate = useWatch({ control: form.control, name: 'paymentDate' }) ?? ''
 
   useLayoutEffect(() => { clearError(); clearAdminError() }, [clearError, clearAdminError])
 
@@ -121,7 +123,7 @@ export function ReceiptSheet() {
             <Field label="اسم الدورة" error={form.formState.errors.courseName?.message}>{(control) => <Input placeholder="اكتب اسم الدورة" readOnly={isEdit} {...control} {...form.register('courseName')} />}</Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="قيمة الدورة" error={form.formState.errors.courseValue?.message}>{(control) => <Input type="number" min="0" step="1" placeholder="0" readOnly={isEdit} className="figure" {...control} {...form.register('courseValue', { valueAsNumber: true })} />}</Field>
-              <Field label="تاريخ الدفع" error={form.formState.errors.paymentDate?.message}>{(control) => <Input type="date" max={maxDate} readOnly={isEdit} className="figure" {...control} {...form.register('paymentDate')} />}</Field>
+              <Field label="تاريخ الدفع" error={form.formState.errors.paymentDate?.message}>{(control) => isEdit ? <Input readOnly dir="ltr" className="figure" value={formatDate(paymentDate)} {...control} /> : <SmartDateInput max={maxDate} value={paymentDate} onChange={(iso) => form.setValue('paymentDate', iso, { shouldValidate: true })} {...control} />}</Field>
             </div>
             <Field label="المبلغ المقبوض" error={form.formState.errors.amountReceived?.message}>
               {(control) => (

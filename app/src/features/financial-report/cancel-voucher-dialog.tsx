@@ -89,10 +89,6 @@ export function CancelVoucherDialog({ movement, onClose, onCancelled }: CancelVo
         </div>
       </div>
 
-      <p className="mb-4 text-[13px] leading-6 text-muted-foreground">
-        لا يُحذف السند؛ يبقى برقمه ويخرج من الإجماليات، ويظل متاحًا للمراجعة.
-      </p>
-
       <Field
         label={requireReason ? 'سبب الإبطال' : 'سبب الإبطال (اختياري)'}
         error={reasonMissing ? 'سبب الإبطال مطلوب' : undefined}

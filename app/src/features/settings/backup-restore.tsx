@@ -140,10 +140,6 @@ export function BackupRestore() {
           className="hidden"
         />
       </div>
-      <p className="pb-2 text-[12.5px] leading-6 text-faint">
-        النسخة الاحتياطيّة ملفّ واحد يحفظ الطلاب وكل السندات. الاستعادة تستبدل
-        البيانات الحاليّة بالكامل، وتُنزّل نسخةً احتياطيّةً تلقائيّة قبلها.
-      </p>
 
       {pending ? (
         <ActionSheet title="تأكيد الاستعادة" onClose={resetRestore}>

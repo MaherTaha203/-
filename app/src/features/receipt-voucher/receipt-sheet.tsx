@@ -114,7 +114,7 @@ export function ReceiptSheet() {
       <ActionSheet title={isEdit ? 'تعديل سند قبض' : 'سند قبض'} onClose={closeOverlay}>
         {showError ? <div role="alert" className="mb-4 rounded-xl border border-clay/25 bg-clay-weak px-4 py-3 text-sm text-clay">{isEdit ? adminError ?? 'تعذّر حفظ التعديل.' : error ?? 'تعذّر حفظ السند.'}</div> : null}
         {loadingEdit ? <p className="py-10 text-center text-sm text-faint">جارٍ تحميل السند…</p> : savedVoucher ? (
-          <div className="py-3"><p className="mb-4 text-center text-sm font-semibold text-foreground">تم حفظ السند. يمكنك طباعته الآن.</p><Button type="button" variant="outline" className="w-full" onClick={closeOverlay}>إغلاق بعد الطباعة</Button></div>
+          <div className="py-3"><p className="mb-4 text-center text-sm font-semibold text-foreground">تم حفظ السند</p><Button type="button" variant="outline" className="w-full" onClick={closeOverlay}>إغلاق بعد الطباعة</Button></div>
         ) : (
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
             {isEdit ? <Field label="اسم الطالب">{(control) => <Input {...control} value={editStudentName} readOnly />}</Field> : <StudentPicker form={form} students={students} />}
@@ -134,7 +134,6 @@ export function ReceiptSheet() {
             <Field label="اسم الدافع (اختياري)" error={form.formState.errors.payerName?.message}>{(control) => <Input placeholder="اسم من يدفع نيابةً عن الطالب" {...control} {...form.register('payerName')} />}</Field>
             <Field label="الملاحظات (اختياري)" error={form.formState.errors.notes?.message}>{(control) => <Textarea placeholder="ملاحظات اختيارية" {...control} {...form.register('notes')} />}</Field>
             <Button type="submit" size="lg" className="w-full" disabled={busy}><ArrowDownLeft className="size-4" />{busy ? 'جارٍ الحفظ…' : isEdit ? 'حفظ التعديل' : 'حفظ سند القبض'}</Button>
-            <p className="text-center text-[11.5px] text-faint">Enter للتالي · Ctrl+Enter للحفظ · Esc للإغلاق</p>
           </form>
         )}
       </ActionSheet>

@@ -2,7 +2,7 @@ import { PrintPreview } from '@/components/print/print-preview'
 import { formatDate, formatNumber, todayIsoDate } from '@/lib/format'
 import { getSettings } from '@/store/use-settings-store'
 import { formatVoucherNo } from '@/lib/voucher'
-import { chronological, withRunningBalance, type RunningMovement } from '@/features/print/financial-report-rows'
+import { chronological, withRunningBalance, type RunningMovement } from '@/lib/statement-rows'
 import type { ReportView } from '@/store/use-shell-store'
 import type { FinancialMovement } from '@/types/domain'
 
@@ -89,7 +89,7 @@ export function FinancialReportPrint({
         </div>
       )}
 
-      <h3 className={`mt-6 mb-2 text-[13px] font-bold ${INK}`}>سجل الحركات المالية — من الأقدم</h3>
+      <h3 className={`mt-6 mb-2 text-[13px] font-bold ${INK}`}>سجل الحركات المالية</h3>
       {view === 'general' ? (
         <GeneralMovementTable movements={runningRows} opening={opening} />
       ) : (

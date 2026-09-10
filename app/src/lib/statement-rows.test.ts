@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { FinancialMovement } from '@/types/domain'
 
-import { chronological, withRunningBalance } from './financial-report-rows'
+import { chronological, withRunningBalance } from './statement-rows'
 
 function movement(
   id: string,

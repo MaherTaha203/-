@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Ban, ChevronDown, Eye, Pencil, Printer, RotateCw, Users } from 'lucide-react'
 
@@ -14,6 +14,7 @@ import { Money } from '@/components/ui/money'
 import { SkeletonRows } from '@/components/ui/skeleton'
 import type { StudentAggregate } from '@/lib/aggregate'
 import { aggregateStudents, financialTotals, movementsNewestFirst, paymentCount, receiptCount, statementFor } from '@/lib/aggregate'
+import { withRunningBalance, type RunningMovement } from '@/lib/statement-rows'
 import { formatDate, formatNumber } from '@/lib/format'
 import { formatVoucherNo } from '@/lib/voucher'
 import type { FinancialMovement } from '@/types/domain'
@@ -70,6 +71,11 @@ export function FinancialReportWorkspace() {
   const [cancelTarget, setCancelTarget] = useState<FinancialMovement | null>(null)
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [printStudentId, setPrintStudentId] = useState<string | null>(null)
+  // General-statement filters (the account ledger): a chosen account/party plus
+  // an optional custom date range that overrides the quick period presets.
+  const [accountName, setAccountName] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
   // Per-student statements are the real, course-aware document derived from
   // statement lines — reused here so the report's single print control can scope
@@ -109,6 +115,48 @@ export function FinancialReportWorkspace() {
   )
   const title = view === 'receipts' ? 'تقرير المقبوضات' : view === 'payments' ? 'تقرير المدفوعات' : 'كشف الحساب العام'
 
+  // Distinct parties that appear on receipts, for the general-statement account
+  // filter. Payments are the centre's own expenses and carry no party.
+  const accountOptions = useMemo(() => {
+    const names = new Set<string>()
+    for (const movement of movements) {
+      if (movement.movementType === 'receipt' && movement.partyName) names.add(movement.partyName)
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'ar'))
+  }, [movements])
+
+  // The general statement (account ledger) has its own scoping: an optional
+  // account, and a custom date range that overrides the quick period preset.
+  const genStart = fromDate || start
+  const genEnd = toDate || null
+  const matchesAccount = useCallback(
+    (movement: FinancialMovement) =>
+      !accountName || (movement.movementType === 'receipt' && movement.partyName === accountName),
+    [accountName],
+  )
+  const genScoped = useMemo(
+    () =>
+      movements.filter(
+        (movement) =>
+          matchesAccount(movement) &&
+          (!genStart || movement.voucherDate >= genStart) &&
+          (!genEnd || movement.voucherDate <= genEnd),
+      ),
+    [movements, matchesAccount, genStart, genEnd],
+  )
+  const genOpening = useMemo(
+    () =>
+      genStart
+        ? financialTotals(movements.filter((movement) => matchesAccount(movement) && movement.voucherDate < genStart)).net
+        : 0,
+    [movements, matchesAccount, genStart],
+  )
+  const genTotals = useMemo(() => financialTotals(genScoped), [genScoped])
+  const genClosing = genOpening + genTotals.net
+  const genRows = useMemo(() => withRunningBalance(genScoped, genOpening), [genScoped, genOpening])
+  const rangeLabel = fromDate || toDate ? `${fromDate ? formatDate(fromDate) : '…'} — ${toDate ? formatDate(toDate) : '…'}` : periodLabel
+  const generalScopeLabel = accountName ? `${accountName} · ${rangeLabel}` : rangeLabel
+
   return (
     <div className="space-y-8">
       <RouteHeader
@@ -118,8 +166,7 @@ export function FinancialReportWorkspace() {
           <>
             <StatementPrintMenu
               disabled={!loaded}
-              canPrintCurrent={viewMovements.length > 0}
-              currentLabel={title}
+              canPrintCurrent={view === 'general' ? genScoped.length > 0 : viewMovements.length > 0}
               students={studentStatements}
               onPrintCurrent={() => setPrinting(true)}
               onPrintStudent={setPrintStudentId}
@@ -157,7 +204,38 @@ export function FinancialReportWorkspace() {
       </div>
 
       {view === 'general' ? (
-        <GeneralSummary net={totals.net} totalIn={totals.totalIn} totalOut={totals.totalOut} opening={opening} closing={closing} periodLabel={periodLabel} />
+        <div className="flex flex-wrap items-end gap-4 border-b border-border pb-4">
+          <label className="flex flex-col gap-1 text-[12px] font-medium text-muted-foreground">
+            الحساب
+            <select
+              value={accountName}
+              onChange={(event) => setAccountName(event.target.value)}
+              className="h-9 min-w-[180px] rounded-md border border-border-strong bg-panel px-3 text-[13px] text-foreground"
+            >
+              <option value="">كل الحسابات</option>
+              {accountOptions.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] font-medium text-muted-foreground">
+            من تاريخ
+            <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="figure h-9 w-40" />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] font-medium text-muted-foreground">
+            إلى تاريخ
+            <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="figure h-9 w-40" />
+          </label>
+          {accountName || fromDate || toDate ? (
+            <button type="button" onClick={() => { setAccountName(''); setFromDate(''); setToDate('') }} className="h-9 text-[12px] font-semibold text-olive">
+              مسح الفلاتر
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {view === 'general' ? (
+        <GeneralSummary net={genTotals.net} totalIn={genTotals.totalIn} totalOut={genTotals.totalOut} opening={genOpening} closing={genClosing} periodLabel={generalScopeLabel} />
       ) : (
         <SidedSummary view={view} amount={view === 'receipts' ? totals.totalIn : totals.totalOut} count={viewMovements.length} periodLabel={periodLabel} />
       )}
@@ -165,15 +243,14 @@ export function FinancialReportWorkspace() {
       <section className="border-y border-border">
         <div className="flex items-baseline justify-between gap-4 border-b border-border px-1 py-4">
           <h2 className="text-base font-bold text-foreground">سجل الحركات المالية</h2>
-          <span className="text-[12px] text-faint">من الأحدث</span>
         </div>
         {view === 'general' ? (
-          // The general statement is read-only: no per-voucher actions here.
-          // Editing / cancelling / printing a single voucher lives in the
-          // receipts / payments reports. One print button (in the header)
-          // prints the whole statement.
+          // The general statement is the read-only account ledger: date, voucher
+          // number, بيان, صرف, قبض and a running balance — matching the printed
+          // form exactly. No per-voucher actions here; editing / cancelling /
+          // printing a single voucher lives in the receipts / payments reports.
           <div className="overflow-x-auto">
-            <MovementTable view={view} loaded={loaded} movements={viewMovements} allEmpty={movements.length === 0} showActions={false} />
+            <GeneralStatementTable rows={genRows} opening={genOpening} loaded={loaded} allEmpty={movements.length === 0} />
           </div>
         ) : (
           <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -201,7 +278,13 @@ export function FinancialReportWorkspace() {
         )}
       </section>
 
-      {printing ? <FinancialReportPrint view={view} title={title} net={totals.net} totalIn={totals.totalIn} totalOut={totals.totalOut} opening={opening} closing={closing} receiptCount={receiptCount(scoped)} paymentCount={paymentCount(scoped)} movements={viewMovements} periodLabel={periodLabel} onClose={() => setPrinting(false)} /> : null}
+      {printing ? (
+        view === 'general' ? (
+          <FinancialReportPrint view={view} title={title} net={genTotals.net} totalIn={genTotals.totalIn} totalOut={genTotals.totalOut} opening={genOpening} closing={genClosing} receiptCount={receiptCount(genScoped)} paymentCount={paymentCount(genScoped)} movements={genScoped} periodLabel={generalScopeLabel} onClose={() => setPrinting(false)} />
+        ) : (
+          <FinancialReportPrint view={view} title={title} net={totals.net} totalIn={totals.totalIn} totalOut={totals.totalOut} opening={opening} closing={closing} receiptCount={receiptCount(scoped)} paymentCount={paymentCount(scoped)} movements={viewMovements} periodLabel={periodLabel} onClose={() => setPrinting(false)} />
+        )
+      ) : null}
       {printStudent ? <StudentStatementPrint studentName={printStudent.student.name} paid={printStudent.paid} remaining={printStudent.remaining} courses={printStudent.courses} lines={statementFor(statementLines, printStudent.student.id)} onClose={() => setPrintStudentId(null)} /> : null}
       {printingVoucher ? <VoucherPrint movement={printingVoucher} onClose={() => setPrintingVoucher(null)} /> : null}
       {cancelTarget ? <CancelVoucherDialog movement={cancelTarget} onClose={() => setCancelTarget(null)} onCancelled={async () => { setCancelTarget(null); setPreviewId(null); await reload() }} /> : null}
@@ -214,14 +297,12 @@ export function FinancialReportWorkspace() {
 function StatementPrintMenu({
   disabled,
   canPrintCurrent,
-  currentLabel,
   students,
   onPrintCurrent,
   onPrintStudent,
 }: {
   disabled: boolean
   canPrintCurrent: boolean
-  currentLabel: string
   students: StudentAggregate[]
   onPrintCurrent: () => void
   onPrintStudent: (studentId: string) => void
@@ -267,10 +348,9 @@ function StatementPrintMenu({
               setOpen(false)
             }}
             disabled={!canPrintCurrent}
-            className="flex w-full flex-col items-start px-3.5 py-2 text-start text-sm text-foreground disabled:opacity-40"
+            className="flex w-full items-center px-3.5 py-2.5 text-start text-sm font-semibold text-foreground disabled:opacity-40"
           >
-            <span className="font-semibold">طباعة الكشف الحالي</span>
-            <span className="text-[11.5px] text-faint">{currentLabel} — كل الحركات</span>
+            طباعة الكشف الحالي
           </button>
 
           <div className="mt-1 flex items-center gap-1.5 border-t border-border px-3.5 pb-1 pt-2 text-[11.5px] font-semibold text-faint">
@@ -308,20 +388,19 @@ function StatementPrintMenu({
 }
 
 function GeneralSummary({ net, totalIn, totalOut, opening, closing, periodLabel }: { net: number; totalIn: number; totalOut: number; opening: number; closing: number; periodLabel: string }) {
-  // Compact by default: closing balance + in/out on one line, so the movements
-  // table is the focus. The opening/net breakdown expands on demand — starting
-  // open when the operator has turned off "طيّ ملخّص كشف الحساب افتراضيًّا".
+  // A simple horizontal summary row (not cards): opening, receipts, payments and
+  // the closing balance side by side, so the statement's key figures read at a
+  // glance while the table stays the focus. The net / period detail expands on
+  // demand — starting open when the operator turned off the default collapse.
   const collapseByDefault = useSettingsStore((state) => state.settings.collapseStatementSummary)
   const [open, setOpen] = useState(!collapseByDefault)
   return (
     <section className="border-y border-border py-3.5">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <div className="flex items-baseline gap-2">
-          <span className="text-[12px] font-medium text-faint">الرصيد الختاميّ</span>
-          <Money value={closing} currency={false} className={`text-2xl font-bold ${closing < 0 ? 'text-clay' : 'text-foreground'}`} />
-        </div>
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground"><span className="size-2 rounded-sm bg-gold" aria-hidden />مقبوضات <Money value={totalIn} currency={false} className="font-semibold text-gold" /></span>
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground"><span className="size-2 rounded-sm bg-clay" aria-hidden />مدفوعات <Money value={totalOut} currency={false} className="font-semibold text-clay" /></span>
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+        <SummaryFigure label="الرصيد الافتتاحي" value={opening} />
+        <SummaryFigure label="إجمالي المقبوضات" value={totalIn} tone="in" />
+        <SummaryFigure label="إجمالي المدفوعات" value={totalOut} tone="out" />
+        <SummaryFigure label="الرصيد الختامي" value={closing} strong />
         <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="ms-auto inline-flex items-center gap-1 text-[12px] font-semibold text-olive">
           تفاصيل الملخّص
           <ChevronDown className={`size-3.5 transition-transform ${open ? '-rotate-180' : ''}`} />
@@ -329,12 +408,71 @@ function GeneralSummary({ net, totalIn, totalOut, opening, closing, periodLabel 
       </div>
       {open ? (
         <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-[13px]">
-          <span className="text-muted-foreground">الرصيد الافتتاحيّ <Money value={opening} currency={false} className="font-semibold text-foreground" /></span>
           <span className="text-muted-foreground">صافي التدفّق النقديّ <Money value={net} currency={false} className={`font-semibold ${net < 0 ? 'text-clay' : 'text-foreground'}`} /></span>
-          <span className="text-faint">الفترة: {periodLabel}</span>
+          <span className="text-faint">النطاق: {periodLabel}</span>
         </div>
       ) : null}
     </section>
+  )
+}
+
+function SummaryFigure({ label, value, tone = 'ink', strong = false }: { label: string; value: number; tone?: 'ink' | 'in' | 'out'; strong?: boolean }) {
+  const color = tone === 'in' ? 'text-gold' : tone === 'out' ? 'text-clay' : value < 0 ? 'text-clay' : 'text-foreground'
+  return (
+    <div>
+      <div className="text-[11px] font-medium text-faint">{label}</div>
+      <Money value={value} currency={false} className={`${strong ? 'text-xl' : 'text-lg'} font-bold ${color}`} />
+    </div>
+  )
+}
+
+// The read-only account ledger table: date, voucher number, بيان, صرف, قبض and a
+// running balance, opening-balance row first — the same shape as the printed
+// statement (both use withRunningBalance) so screen and paper always agree.
+function GeneralStatementTable({ rows, opening, loaded, allEmpty }: { rows: RunningMovement[]; opening: number; loaded: boolean; allEmpty: boolean }) {
+  return (
+    <table className="w-full min-w-[720px] border-collapse text-sm">
+      <thead><tr className="text-[11px] tracking-wide text-faint">
+        <th className="border-b border-border-strong px-3 py-2.5 text-start font-semibold">التاريخ</th>
+        <th className="border-b border-border-strong px-3 py-2.5 text-start font-semibold">رقم السند</th>
+        <th className="border-b border-border-strong px-3 py-2.5 text-start font-semibold">البيان</th>
+        <th className="border-b border-border-strong px-3 py-2.5 text-end font-semibold">صرف</th>
+        <th className="border-b border-border-strong px-3 py-2.5 text-end font-semibold">قبض</th>
+        <th className="border-b border-border-strong px-3 py-2.5 text-end font-semibold">الرصيد الجاري</th>
+      </tr></thead>
+      <tbody>
+        {!loaded ? (
+          <tr><td colSpan={6} className="px-3 py-3"><SkeletonRows rows={5} /></td></tr>
+        ) : (
+          <>
+            <tr>
+              <td className="border-b border-border px-3 py-2.5 text-faint">—</td>
+              <td className="border-b border-border px-3 py-2.5 text-faint">—</td>
+              <td className="border-b border-border px-3 py-2.5 font-medium text-muted-foreground">الرصيد الافتتاحي</td>
+              <td className="figure border-b border-border px-3 py-2.5 text-end text-faint">—</td>
+              <td className="figure border-b border-border px-3 py-2.5 text-end text-faint">—</td>
+              <td className={`figure border-b border-border px-3 py-2.5 text-end font-bold ${opening < 0 ? 'text-clay' : 'text-foreground'}`}>{formatNumber(opening)}</td>
+            </tr>
+            {rows.map((movement) => {
+              const isReceipt = movement.movementType === 'receipt'
+              return (
+                <tr key={`${movement.movementType}-${movement.id}`}>
+                  <td className="figure whitespace-nowrap border-b border-border px-3 py-2.5">{formatDate(movement.voucherDate)}</td>
+                  <td className="figure border-b border-border px-3 py-2.5 text-muted-foreground">{formatVoucherNo(movement.voucherNumber)}</td>
+                  <td className="border-b border-border px-3 py-2.5 text-muted-foreground">{partyAndContext(movement)}</td>
+                  <td className={`figure border-b border-border px-3 py-2.5 text-end font-semibold ${isReceipt ? 'text-faint' : 'text-clay'}`}>{isReceipt ? '—' : formatNumber(movement.amount)}</td>
+                  <td className={`figure border-b border-border px-3 py-2.5 text-end font-semibold ${isReceipt ? 'text-gold' : 'text-faint'}`}>{isReceipt ? formatNumber(movement.amount) : '—'}</td>
+                  <td className={`figure border-b border-border px-3 py-2.5 text-end font-bold ${movement.runningBalance < 0 ? 'text-clay' : 'text-foreground'}`}>{formatNumber(movement.runningBalance)}</td>
+                </tr>
+              )
+            })}
+            {rows.length === 0 ? (
+              <tr><td colSpan={6} className="px-3 py-12 text-center text-sm text-faint">{!allEmpty ? 'لا توجد حركات ضمن هذا النطاق.' : 'لا توجد حركات مالية لعرضها.'}</td></tr>
+            ) : null}
+          </>
+        )}
+      </tbody>
+    </table>
   )
 }
 

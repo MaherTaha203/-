@@ -62,12 +62,12 @@ export function StudentStatementPrint({
       </div>
 
       {/* Statement table */}
-      <h3 className={`mt-6 mb-2 text-[13px] font-bold ${INK}`}>كشف الحساب — مُستخرج من السندات</h3>
+      <h3 className={`mt-6 mb-2 text-[13px] font-bold ${INK}`}>كشف الحساب</h3>
       <table className="w-full border-collapse text-[12.5px]">
         <thead>
           <tr className={`text-[10.5px] ${MUTED}`}>
             <th className={`border-b ${HEAD} px-2 py-2 text-start font-semibold`}>التاريخ</th>
-            <th className={`border-b ${HEAD} px-2 py-2 text-start font-semibold`}>البيان</th>
+            <th className={`border-b ${HEAD} px-2 py-2 text-start font-semibold`}>رقم السند</th>
             <th className={`border-b ${HEAD} px-2 py-2 text-start font-semibold`}>الدورة</th>
             <th className={`border-b ${HEAD} px-2 py-2 text-end font-semibold`}>قيمة الدورة</th>
             <th className={`border-b ${HEAD} px-2 py-2 text-end font-semibold`}>المسدَّد</th>
@@ -78,9 +78,7 @@ export function StudentStatementPrint({
           {lines.map((line) => (
             <tr key={line.id} className={INK}>
               <td className={`border-b ${HAIR} px-2 py-2.5`}>{formatDate(line.voucherDate)}</td>
-              <td className={`border-b ${HAIR} px-2 py-2.5`}>
-                سند قبض — رقم <span className="figure">{formatVoucherNo(line.voucherNumber)}</span>
-              </td>
+              <td className={`figure border-b ${HAIR} px-2 py-2.5 ${MUTED}`}>{formatVoucherNo(line.voucherNumber)}</td>
               <td className={`border-b ${HAIR} px-2 py-2.5 ${MUTED}`}>{line.courseName}</td>
               <td className={`figure border-b ${HAIR} px-2 py-2.5 text-end`}>
                 {formatNumber(line.courseValue)}

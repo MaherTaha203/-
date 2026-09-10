@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { Ban, Eye, Pencil, Printer, RotateCw } from 'lucide-react'
+import { Ban, ChevronDown, Eye, Pencil, Printer, RotateCw } from 'lucide-react'
 
 import { ConfigNotice, ErrorNotice } from '@/components/shell/notices'
 import { RouteHeader } from '@/components/shell/route-header'
@@ -146,27 +146,38 @@ export function FinancialReportWorkspace() {
           <h2 className="text-base font-bold text-foreground">سجل الحركات المالية</h2>
           <span className="text-[12px] text-faint">من الأحدث</span>
         </div>
-        <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_300px]">
+        {view === 'general' ? (
+          // The general statement is read-only: no per-voucher actions here.
+          // Editing / cancelling / printing a single voucher lives in the
+          // receipts / payments reports. One print button (in the header)
+          // prints the whole statement.
           <div className="overflow-x-auto">
-            <MovementTable
-              view={view}
-              loaded={loaded}
-              movements={viewMovements}
-              allEmpty={movements.length === 0}
-              previewId={previewId}
-              onPreview={(movement) => setPreviewId(movement.id)}
-              onPrintVoucher={setPrintingVoucher}
-              onEdit={handleEdit}
-              onCancel={setCancelTarget}
+            <MovementTable view={view} loaded={loaded} movements={viewMovements} allEmpty={movements.length === 0} showActions={false} />
+          </div>
+        ) : (
+          <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="overflow-x-auto">
+              <MovementTable
+                view={view}
+                loaded={loaded}
+                movements={viewMovements}
+                allEmpty={movements.length === 0}
+                showActions
+                previewId={previewId}
+                onPreview={(movement) => setPreviewId(movement.id)}
+                onPrintVoucher={setPrintingVoucher}
+                onEdit={handleEdit}
+                onCancel={setCancelTarget}
+              />
+            </div>
+            <VoucherPreviewPanel
+              movement={previewMovement}
+              onPrint={() => previewMovement && setPrintingVoucher(previewMovement)}
+              onEdit={() => previewMovement && handleEdit(previewMovement)}
+              onCancel={() => previewMovement && setCancelTarget(previewMovement)}
             />
           </div>
-          <VoucherPreviewPanel
-            movement={previewMovement}
-            onPrint={() => previewMovement && setPrintingVoucher(previewMovement)}
-            onEdit={() => previewMovement && handleEdit(previewMovement)}
-            onCancel={() => previewMovement && setCancelTarget(previewMovement)}
-          />
-        </div>
+        )}
       </section>
 
       {printing ? <FinancialReportPrint view={view} title={title} net={totals.net} totalIn={totals.totalIn} totalOut={totals.totalOut} opening={opening} closing={closing} receiptCount={receiptCount(scoped)} paymentCount={paymentCount(scoped)} movements={viewMovements} periodLabel={periodLabel} onClose={() => setPrinting(false)} /> : null}
@@ -177,44 +188,30 @@ export function FinancialReportWorkspace() {
 }
 
 function GeneralSummary({ net, totalIn, totalOut, opening, closing, periodLabel }: { net: number; totalIn: number; totalOut: number; opening: number; closing: number; periodLabel: string }) {
-  // One clear hero (the closing balance), two coloured totals, and a proportion
-  // bar — hierarchy over a flat row of five equal figures.
-  const flow = totalIn + totalOut
-  const inPct = flow > 0 ? Math.round((totalIn / flow) * 100) : 0
+  // Compact by default: closing balance + in/out on one line, so the movements
+  // table is the focus. The opening/net breakdown expands on demand.
+  const [open, setOpen] = useState(false)
   return (
-    <section className="border-y border-border py-6">
-      <div className="mb-4 flex items-baseline justify-between gap-4">
-        <h2 className="text-base font-bold text-foreground">ملخص الفترة</h2>
-        <span className="text-[12px] text-faint">{periodLabel}</span>
+    <section className="border-y border-border py-3.5">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="flex items-baseline gap-2">
+          <span className="text-[12px] font-medium text-faint">الرصيد الختاميّ</span>
+          <Money value={closing} currency={false} className={`text-2xl font-bold ${closing < 0 ? 'text-clay' : 'text-foreground'}`} />
+        </div>
+        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground"><span className="size-2 rounded-sm bg-gold" aria-hidden />مقبوضات <Money value={totalIn} currency={false} className="font-semibold text-gold" /></span>
+        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground"><span className="size-2 rounded-sm bg-clay" aria-hidden />مدفوعات <Money value={totalOut} currency={false} className="font-semibold text-clay" /></span>
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="ms-auto inline-flex items-center gap-1 text-[12px] font-semibold text-olive">
+          تفاصيل الملخّص
+          <ChevronDown className={`size-3.5 transition-transform ${open ? '-rotate-180' : ''}`} />
+        </button>
       </div>
-
-      <div className="text-[11.5px] font-medium text-faint">الرصيد الختاميّ</div>
-      <Money
-        value={closing}
-        currencyClassName="text-[0.34em] text-faint"
-        className={`mt-1 block text-[clamp(2.2rem,5vw,3.2rem)] font-semibold leading-none ${closing < 0 ? 'text-clay' : 'text-foreground'}`}
-      />
-
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-gold/25 bg-gold-weak/50 p-4">
-          <div className="flex items-center gap-2 text-[12px] font-medium text-muted-foreground"><span className="size-2 rounded-sm bg-gold" aria-hidden />إجمالي المقبوضات</div>
-          <Money value={totalIn} currency={false} className="mt-1.5 block text-2xl font-bold text-gold" />
+      {open ? (
+        <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-[13px]">
+          <span className="text-muted-foreground">الرصيد الافتتاحيّ <Money value={opening} currency={false} className="font-semibold text-foreground" /></span>
+          <span className="text-muted-foreground">صافي التدفّق النقديّ <Money value={net} currency={false} className={`font-semibold ${net < 0 ? 'text-clay' : 'text-foreground'}`} /></span>
+          <span className="text-faint">الفترة: {periodLabel}</span>
         </div>
-        <div className="rounded-xl border border-clay/25 bg-clay-weak/50 p-4">
-          <div className="flex items-center gap-2 text-[12px] font-medium text-muted-foreground"><span className="size-2 rounded-sm bg-clay" aria-hidden />إجمالي المدفوعات</div>
-          <Money value={totalOut} currency={false} className="mt-1.5 block text-2xl font-bold text-clay" />
-        </div>
-      </div>
-
-      <div className="mt-5">
-        <div className={`flex h-2 overflow-hidden rounded-full ${totalOut > 0 ? 'bg-clay/70' : 'bg-border'}`} aria-hidden>
-          <div className="h-full rounded-full bg-gold" style={{ width: `${inPct}%` }} />
-        </div>
-        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-[12.5px] text-muted-foreground">
-          <span>صافي التدفّق النقديّ <Money value={net} currency={false} className={`font-semibold ${net < 0 ? 'text-clay' : 'text-foreground'}`} /></span>
-          <span>الرصيد الافتتاحيّ <Money value={opening} currency={false} className="font-semibold text-foreground" /></span>
-        </div>
-      </div>
+      ) : null}
     </section>
   )
 }
@@ -249,6 +246,7 @@ function MovementTable({
   loaded,
   movements,
   allEmpty,
+  showActions,
   previewId,
   onPreview,
   onPrintVoucher,
@@ -259,43 +257,46 @@ function MovementTable({
   loaded: boolean
   movements: FinancialMovement[]
   allEmpty: boolean
-  previewId: string | null
-  onPreview: (movement: FinancialMovement) => void
-  onPrintVoucher: (movement: FinancialMovement) => void
-  onEdit: (movement: FinancialMovement) => void
-  onCancel: (movement: FinancialMovement) => void
+  showActions: boolean
+  previewId?: string | null
+  onPreview?: (movement: FinancialMovement) => void
+  onPrintVoucher?: (movement: FinancialMovement) => void
+  onEdit?: (movement: FinancialMovement) => void
+  onCancel?: (movement: FinancialMovement) => void
 }) {
   const showType = view === 'general'
-  const colCount = (showType ? 5 : 4) + 1
+  const colCount = (showType ? 5 : 4) + (showActions ? 1 : 0)
   return (
-    <table className="min-w-[980px] w-full border-collapse text-sm">
+    <table className={`${showActions ? 'min-w-[980px]' : 'min-w-[640px]'} w-full border-collapse text-sm`}>
       <thead><tr className="text-[11px] tracking-wide text-faint">
         {showType ? <th className="border-b border-border-strong px-3 py-2.5 text-start font-semibold">النوع</th> : null}
         <th className="border-b border-border-strong px-3 py-2.5 text-start font-semibold">رقم السند</th>
         <th className="border-b border-border-strong px-3 py-2.5 text-start font-semibold">التاريخ</th>
         <th className="border-b border-border-strong px-3 py-2.5 text-start font-semibold">البيان</th>
         <th className="border-b border-border-strong px-3 py-2.5 text-end font-semibold">المبلغ</th>
-        <th className="border-b border-border-strong px-3 py-2.5 text-end font-semibold"><span className="sr-only">إجراءات</span></th>
+        {showActions ? <th className="border-b border-border-strong px-3 py-2.5 text-end font-semibold"><span className="sr-only">إجراءات</span></th> : null}
       </tr></thead>
       <tbody>
         {!loaded ? (
           <tr><td colSpan={colCount} className="px-3 py-3"><SkeletonRows rows={5} /></td></tr>
         ) : movements.length > 0 ? movements.map((movement) => {
           const isReceipt = movement.movementType === 'receipt'
-          const selected = movement.id === previewId
+          const selected = showActions && movement.id === previewId
           return (
             <tr key={`${movement.movementType}-${movement.id}`} className={selected ? 'bg-highlight' : ''}>
               {showType ? <td className="border-b border-border px-3 py-2.5"><span className={`inline-flex items-center gap-1.5 border px-2.5 py-0.5 text-[11.5px] font-medium ${isReceipt ? 'border-gold/30 bg-gold-weak text-gold' : 'border-clay/30 bg-clay-weak text-clay'}`}><span className={`size-1.5 ${isReceipt ? 'bg-gold' : 'bg-clay'}`} aria-hidden />{isReceipt ? 'قبض' : 'صرف'}</span></td> : null}
               <td className="figure border-b border-border px-3 py-2.5 text-muted-foreground">{formatVoucherNo(movement.voucherNumber)}</td>
-              <td className="border-b border-border px-3 py-2.5">{formatDate(movement.voucherDate)}</td>
+              <td className="figure whitespace-nowrap border-b border-border px-3 py-2.5">{formatDate(movement.voucherDate)}</td>
               <td className="border-b border-border px-3 py-2.5 text-muted-foreground">{partyAndContext(movement)}</td>
               <td className={`figure border-b border-border px-3 py-2.5 text-end font-bold ${isReceipt ? 'text-gold' : 'text-clay'}`}>{isReceipt ? '+' : '−'}{formatNumber(movement.amount)}</td>
-              <td className="border-b border-border px-3 py-2.5"><div className="flex items-center justify-end gap-0.5">
-                <button type="button" onClick={() => onPreview(movement)} aria-pressed={selected} aria-label={`معاينة ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="معاينة" className={`p-1.5 ${selected ? 'text-olive' : 'text-faint'}`}><Eye className="size-4" /></button>
-                <button type="button" onClick={() => onPrintVoucher(movement)} aria-label={`طباعة ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="طباعة السند" className="p-1.5 text-faint"><Printer className="size-4" /></button>
-                <button type="button" onClick={() => onEdit(movement)} aria-label={`تعديل ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="تعديل السند" className="p-1.5 text-faint"><Pencil className="size-4" /></button>
-                <button type="button" onClick={() => onCancel(movement)} aria-label={`إبطال ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="إبطال السند" className="p-1.5 text-faint"><Ban className="size-4" /></button>
-              </div></td>
+              {showActions ? (
+                <td className="border-b border-border px-3 py-2.5"><div className="flex items-center justify-end gap-0.5">
+                  <button type="button" onClick={() => onPreview?.(movement)} aria-pressed={selected} aria-label={`معاينة ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="معاينة" className={`p-1.5 ${selected ? 'text-olive' : 'text-faint'}`}><Eye className="size-4" /></button>
+                  <button type="button" onClick={() => onPrintVoucher?.(movement)} aria-label={`طباعة ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="طباعة السند" className="p-1.5 text-faint"><Printer className="size-4" /></button>
+                  <button type="button" onClick={() => onEdit?.(movement)} aria-label={`تعديل ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="تعديل السند" className="p-1.5 text-faint"><Pencil className="size-4" /></button>
+                  <button type="button" onClick={() => onCancel?.(movement)} aria-label={`إبطال ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="إبطال السند" className="p-1.5 text-faint"><Ban className="size-4" /></button>
+                </div></td>
+              ) : null}
             </tr>
           )
         }) : (

@@ -49,9 +49,9 @@ export function GlanceWorkspace() {
       <ConfigNotice />
       <ErrorNotice message={error} onDismiss={clearError} onRetry={reload} />
 
-      <header className="space-y-1.5">
-        <div className="text-[12px] font-bold tracking-wide text-olive">أرض كنعان</div>
-        <h1 className="editorial text-[clamp(1.8rem,3vw,2.5rem)] text-foreground">الرئيسية</h1>
+      <header className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+        <h1 className="editorial text-[clamp(1.5rem,2.6vw,1.9rem)] text-foreground">الرئيسية</h1>
+        <div className="text-[11.5px] font-bold tracking-wide text-olive">أرض كنعان</div>
       </header>
 
       <section aria-label="الرصيد النقديّ للمركز" className="border-y border-border py-7 sm:py-8">

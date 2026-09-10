@@ -1,6 +1,6 @@
 import { type ReactNode, type Ref } from 'react'
 
-import { getCenterSettings } from '@/lib/center-settings'
+import { getSettings } from '@/store/use-settings-store'
 
 const EMBLEM_SRC = `${import.meta.env.BASE_URL}brand/emblem.jpg`
 
@@ -19,14 +19,16 @@ type PrintDocumentProps = {
  * Center identity is presentation-only configuration; financial values are passed in.
  */
 export function PrintDocument({ ref, docTitle, meta, children }: PrintDocumentProps) {
-  const center = getCenterSettings()
+  const center = getSettings()
+  const logoSrc = center.logo || EMBLEM_SRC
+  const contactLine = [center.phone, center.address].filter(Boolean).join(' · ')
 
   return (
     <div ref={ref} className="print-sheet">
       <header className="flex items-start justify-between gap-6 border-b border-[#e2e8f0] pb-4">
         <div className="flex items-center gap-3">
           <img
-            src={EMBLEM_SRC}
+            src={logoSrc}
             alt={`شعار ${center.name}`}
             className="h-[60px] w-[60px] flex-none rounded-lg object-cover ring-1 ring-[#e7ddcf]"
           />
@@ -35,10 +37,11 @@ export function PrintDocument({ ref, docTitle, meta, children }: PrintDocumentPr
             {center.responsibleName ? (
               <div className="mt-1 text-[11px] text-[#475569]">{center.responsibleName}</div>
             ) : null}
-            {center.phone || center.address ? (
-              <div className="mt-0.5 text-[10px] text-[#64748b]">
-                {[center.phone, center.address].filter(Boolean).join(' · ')}
-              </div>
+            {contactLine ? (
+              <div className="mt-0.5 text-[10px] text-[#64748b]">{contactLine}</div>
+            ) : null}
+            {center.taxId ? (
+              <div className="figure mt-0.5 text-[10px] text-[#64748b]">الرقم الضريبي/الترخيص: {center.taxId}</div>
             ) : null}
           </div>
         </div>
@@ -49,6 +52,12 @@ export function PrintDocument({ ref, docTitle, meta, children }: PrintDocumentPr
       </header>
 
       <main className="mt-6">{children}</main>
+
+      {center.voucherFooter ? (
+        <footer className="mt-8 border-t border-[#e2e8f0] pt-3 text-center text-[11px] leading-6 text-[#64748b]">
+          {center.voucherFooter}
+        </footer>
+      ) : null}
     </div>
   )
 }

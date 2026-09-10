@@ -1,6 +1,6 @@
 import { PrintPreview } from '@/components/print/print-preview'
 import { formatDate, formatNumber, todayIsoDate } from '@/lib/format'
-import { getCenterSettings } from '@/lib/center-settings'
+import { getSettings } from '@/store/use-settings-store'
 import { formatVoucherNo } from '@/lib/voucher'
 import { chronological, withRunningBalance, type RunningMovement } from '@/features/print/financial-report-rows'
 import type { ReportView } from '@/store/use-shell-store'
@@ -45,7 +45,7 @@ export function FinancialReportPrint({
   periodLabel,
   onClose,
 }: FinancialReportPrintProps) {
-  const centerName = getCenterSettings().name
+  const centerName = getSettings().name
   const orderedRows = chronological(movements)
   const runningRows = withRunningBalance(movements, opening)
 

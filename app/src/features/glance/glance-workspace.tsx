@@ -8,11 +8,13 @@ import { Money } from '@/components/ui/money'
 import { Skeleton, SkeletonRows } from '@/components/ui/skeleton'
 import { aggregateStudents, attentionList, financialTotals, type StudentAggregate } from '@/lib/aggregate'
 import { formatNumber } from '@/lib/format'
+import { useSettingsStore } from '@/store/use-settings-store'
 import { useShellStore } from '@/store/use-shell-store'
 import { useWorkspaceStore } from '@/store/use-workspace-store'
 
-const ATTENTION_LIMIT = 5
-const ATTENTION_COLLAPSED = 3
+// How many attention rows the list can reveal in total ("عرض المزيد" cap). The
+// collapsed count — how many show first — is operator-configurable.
+const ATTENTION_LIMIT = 10
 
 // The Glance is a work entry point, not a dashboard: one cash position, a short
 // attention list, and the day's actions. Figures remain derived from vouchers.
@@ -30,6 +32,8 @@ export function GlanceWorkspace() {
   const openReceiveFor = useShellStore((state) => state.openReceiveFor)
   const navigateStudents = useShellStore((state) => state.navigateStudents)
 
+  const attentionCollapsed = useSettingsStore((state) => state.settings.attentionCount)
+
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [showAllAttention, setShowAllAttention] = useState(false)
 
@@ -38,7 +42,7 @@ export function GlanceWorkspace() {
     () => attentionList(aggregateStudents(students, statementLines)).slice(0, ATTENTION_LIMIT),
     [students, statementLines],
   )
-  const visibleAttention = showAllAttention ? attention : attention.slice(0, ATTENTION_COLLAPSED)
+  const visibleAttention = showAllAttention ? attention : attention.slice(0, attentionCollapsed)
   const preview = useMemo(
     () => (previewId ? attention.find((item) => item.student.id === previewId) ?? null : null),
     [attention, previewId],
@@ -113,13 +117,13 @@ export function GlanceWorkspace() {
                     </Button>
                   </div>
                 ))}
-                {!showAllAttention && attention.length > ATTENTION_COLLAPSED ? (
+                {!showAllAttention && attention.length > attentionCollapsed ? (
                   <button
                     type="button"
                     onClick={() => setShowAllAttention(true)}
                     className="w-full py-2.5 text-center text-xs font-semibold text-olive"
                   >
-                    عرض المزيد ({attention.length - ATTENTION_COLLAPSED})
+                    عرض المزيد ({attention.length - attentionCollapsed})
                   </button>
                 ) : null}
               </div>

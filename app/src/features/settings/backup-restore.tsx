@@ -49,11 +49,14 @@ export function BackupRestore() {
       return
     }
     downloadBackup(payload)
+    const students = payload.students.length
+    const vouchers = payload.receipt_vouchers.length + payload.payment_vouchers.length
     void recordActivityEvent({
       entity: 'backup',
       action: 'export',
       label: 'نسخة احتياطيّة',
-      description: 'تصدير نسخة احتياطيّة من بيانات المركز',
+      description: `تصدير نسخة احتياطيّة — ${students} طالبًا و${vouchers} سندًا`,
+      metadata: { students, vouchers },
     })
     useToastStore.getState().show('تم تنزيل النسخة الاحتياطيّة')
   }
@@ -90,6 +93,15 @@ export function BackupRestore() {
       useToastStore.getState().show('تعذّرت الاستعادة')
       return
     }
+    const students = result.counts.students
+    const vouchers = result.counts.receipt_vouchers + result.counts.payment_vouchers
+    void recordActivityEvent({
+      entity: 'backup',
+      action: 'restore',
+      label: 'استعادة نسخة احتياطيّة',
+      description: `استعادة نسخة احتياطيّة — ${students} طالبًا و${vouchers} سندًا`,
+      metadata: { students, vouchers },
+    })
     await reloadWorkspace()
     resetRestore()
     useToastStore.getState().show('تمت الاستعادة بنجاح')

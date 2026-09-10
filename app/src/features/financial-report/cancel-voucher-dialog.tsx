@@ -9,7 +9,12 @@ import { formatDate } from '@/lib/format'
 import { formatVoucherNo, voucherTypeLabel } from '@/lib/voucher'
 import type { FinancialMovement } from '@/types/domain'
 import { useToastStore } from '@/components/ui/use-toast-store'
+import { useSettingsStore } from '@/store/use-settings-store'
 import { useVoucherAdminStore } from '@/store/use-voucher-admin-store'
+
+// Kept when the operator turns off "اشتراط سبب عند الإبطال": the audit trail must
+// still carry a reason, so a blank one is recorded as this rather than rejected.
+const UNSPECIFIED_REASON = 'إبطال بدون سبب محدّد'
 
 type CancelVoucherDialogProps = {
   movement: FinancialMovement
@@ -26,13 +31,28 @@ export function CancelVoucherDialog({ movement, onClose, onCancelled }: CancelVo
   const cancelVoucher = useVoucherAdminStore((state) => state.cancelVoucher)
   const isBusy = useVoucherAdminStore((state) => state.isBusy)
   const error = useVoucherAdminStore((state) => state.error)
+  const requireReason = useSettingsStore((state) => state.settings.requireCancelReason)
+  const doubleConfirm = useSettingsStore((state) => state.settings.doubleConfirmCancel)
   const [reason, setReason] = useState('')
+  const [armed, setArmed] = useState(false)
 
   const typeLabel = voucherTypeLabel(movement.movementType)
+  const reasonMissing = requireReason && !reason.trim()
 
   async function handleConfirm() {
-    const ok = await cancelVoucher(movement.movementType, movement.id, reason)
-    if (!ok) return
+    if (reasonMissing) return
+    // A second, deliberate press is required when the operator enabled the extra
+    // confirmation guard.
+    if (doubleConfirm && !armed) {
+      setArmed(true)
+      return
+    }
+    const finalReason = reason.trim() || UNSPECIFIED_REASON
+    const ok = await cancelVoucher(movement.movementType, movement.id, finalReason)
+    if (!ok) {
+      setArmed(false)
+      return
+    }
     useToastStore.getState().show('تم إبطال السند')
     await onCancelled()
   }
@@ -73,25 +93,37 @@ export function CancelVoucherDialog({ movement, onClose, onCancelled }: CancelVo
         لا يُحذف السند؛ يبقى برقمه ويخرج من الإجماليات، ويظل متاحًا للمراجعة.
       </p>
 
-      <Field label="سبب الإبطال" error={!reason.trim() ? 'سبب الإبطال مطلوب' : undefined}>
+      <Field
+        label={requireReason ? 'سبب الإبطال' : 'سبب الإبطال (اختياري)'}
+        error={reasonMissing ? 'سبب الإبطال مطلوب' : undefined}
+      >
         {(control) => (
           <Textarea
             placeholder="اكتب سبب الإبطال"
             value={reason}
-            onChange={(event) => setReason(event.target.value)}
+            onChange={(event) => {
+              setReason(event.target.value)
+              setArmed(false)
+            }}
             {...control}
           />
         )}
       </Field>
+
+      {armed ? (
+        <p className="mt-4 rounded-xl border border-clay/30 bg-clay-weak px-4 py-3 text-sm font-medium text-clay">
+          اضغط «تأكيد الإبطال» مرّة أخرى لإتمام العمليّة.
+        </p>
+      ) : null}
 
       <div className="mt-6 flex gap-3">
         <Button
           variant="destructive"
           className="flex-1"
           onClick={handleConfirm}
-          disabled={isBusy || !reason.trim()}
+          disabled={isBusy || reasonMissing}
         >
-          {isBusy ? 'جارٍ الإبطال…' : 'تأكيد الإبطال'}
+          {isBusy ? 'جارٍ الإبطال…' : armed ? 'تأكيد الإبطال نهائيًّا' : 'تأكيد الإبطال'}
         </Button>
         <Button variant="quiet" onClick={onClose} disabled={isBusy}>
           تراجع

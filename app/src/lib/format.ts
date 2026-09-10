@@ -1,3 +1,6 @@
+import { getSettings } from '@/store/use-settings-store'
+import type { DateFormat } from '@/lib/app-settings'
+
 // Owner Decision: every numeric value shown to users must always render with Western digits (0-9),
 // regardless of the Arabic RTL interface. Route every displayed number/date through these helpers.
 const WESTERN_DIGITS_NUMBERING_SYSTEM = 'latn'
@@ -16,19 +19,21 @@ export function formatNumber(value: number | string) {
   }).format(numericValue)
 }
 
-export function formatDate(value: string) {
+// Renders a YYYY-MM-DD date in the operator's chosen order. Built by hand from
+// the date parts so the output is always pure Western digits with no locale RTL
+// marks, and the day/month/year order is exactly as configured.
+export function formatDate(value: string, format: DateFormat = getSettings().dateFormat) {
   const parsedDate = new Date(`${value}T00:00:00`)
 
   if (Number.isNaN(parsedDate.getTime())) {
     return value
   }
 
-  return new Intl.DateTimeFormat('ar-EG', {
-    numberingSystem: WESTERN_DIGITS_NUMBERING_SYSTEM,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(parsedDate)
+  const year = String(parsedDate.getFullYear())
+  const month = String(parsedDate.getMonth() + 1).padStart(2, '0')
+  const day = String(parsedDate.getDate()).padStart(2, '0')
+
+  return format === 'ymd' ? `${year}/${month}/${day}` : `${day}/${month}/${year}`
 }
 
 // Formats a full ISO timestamp (e.g. an audit-log `changed_at`) into Western-digit

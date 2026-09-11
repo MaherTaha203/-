@@ -1,7 +1,7 @@
 import { PrintPreview } from '@/components/print/print-preview'
 import { formatDate, formatNumber, todayIsoDate } from '@/lib/format'
 import { getSettings } from '@/store/use-settings-store'
-import { formatVoucherNo } from '@/lib/voucher'
+import { voucherRef } from '@/lib/voucher'
 import { chronological, withRunningBalance, type RunningMovement } from '@/lib/statement-rows'
 import type { ReportView } from '@/store/use-shell-store'
 import type { FinancialMovement } from '@/types/domain'
@@ -44,12 +44,14 @@ export function FinancialReportPrint({
   onClose,
 }: FinancialReportPrintProps) {
   const centerName = getSettings().name
+  const titleEn = view === 'receipts' ? 'Receipts Report' : view === 'payments' ? 'Payments Report' : 'General Statement'
   const orderedRows = chronological(movements)
   const runningRows = withRunningBalance(movements, opening)
 
   return (
     <PrintPreview
       docTitle={title}
+      docTitleEn={titleEn}
       documentTitle={`${title} — ${centerName}`}
       onClose={onClose}
       meta={
@@ -109,7 +111,7 @@ export function FinancialReportPrint({
                     <span className={isReceipt ? 'text-[#059669]' : 'text-[#dc2626]'}>{isReceipt ? 'قبض' : 'صرف'}</span>
                   </td>
                   <td className={`figure border-b ${HAIR} px-2 py-2.5 ${MUTED}`}>
-                    {formatVoucherNo(movement.voucherNumber)}
+                    {voucherRef(movement.movementType, movement.voucherNumber)}
                   </td>
                   <td className={`border-b ${HAIR} px-2 py-2.5`}>{formatDate(movement.voucherDate)}</td>
                   <td className={`border-b ${HAIR} px-2 py-2.5 ${MUTED}`}>{partyAndContext(movement)}</td>
@@ -155,7 +157,7 @@ function GeneralMovementTable({ movements, opening }: { movements: RunningMoveme
           return (
             <tr key={`${movement.movementType}-${movement.id}`} className={INK}>
               <td className={`border-b ${HAIR} px-2 py-2.5`}>{formatDate(movement.voucherDate)}</td>
-              <td className={`figure border-b ${HAIR} px-2 py-2.5 ${MUTED}`}>{formatVoucherNo(movement.voucherNumber)}</td>
+              <td className={`figure border-b ${HAIR} px-2 py-2.5 ${MUTED}`}>{voucherRef(movement.movementType, movement.voucherNumber)}</td>
               <td className={`border-b ${HAIR} px-2 py-2.5 ${MUTED}`}>{partyAndContext(movement)}</td>
               <td className={`figure border-b ${HAIR} px-2 py-2.5 text-end font-semibold ${isReceipt ? MUTED : 'text-[#dc2626]'}`}>
                 {isReceipt ? '—' : formatNumber(movement.amount)}

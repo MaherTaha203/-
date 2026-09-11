@@ -6,7 +6,7 @@ import { Field } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import { Money } from '@/components/ui/money'
 import { formatDate } from '@/lib/format'
-import { formatVoucherNo, voucherTypeLabel } from '@/lib/voucher'
+import { voucherRef, voucherTypeLabel } from '@/lib/voucher'
 import type { FinancialMovement } from '@/types/domain'
 import { useToastStore } from '@/components/ui/use-toast-store'
 import { useSettingsStore } from '@/store/use-settings-store'
@@ -72,7 +72,7 @@ export function CancelVoucherDialog({ movement, onClose, onCancelled }: CancelVo
         <div className="flex items-center justify-between py-1">
           <span className="text-muted-foreground">رقم السند</span>
           <span className="figure font-semibold text-foreground">
-            {formatVoucherNo(movement.voucherNumber)}
+            {voucherRef(movement.movementType, movement.voucherNumber)}
           </span>
         </div>
         <div className="flex items-center justify-between py-1">

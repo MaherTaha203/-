@@ -1,6 +1,6 @@
 import { PrintPreview } from '@/components/print/print-preview'
 import { formatDate, formatNumber, todayIsoDate } from '@/lib/format'
-import { formatVoucherNo } from '@/lib/voucher'
+import { voucherRef } from '@/lib/voucher'
 import type { StudentStatementLine } from '@/types/domain'
 
 type StudentStatementPrintProps = {
@@ -33,6 +33,7 @@ export function StudentStatementPrint({
   return (
     <PrintPreview
       docTitle="كشف حساب الطالب"
+      docTitleEn="Student Statement"
       documentTitle={`كشف حساب الطالب — ${studentName}`}
       onClose={onClose}
       meta={
@@ -78,7 +79,7 @@ export function StudentStatementPrint({
           {lines.map((line) => (
             <tr key={line.id} className={INK}>
               <td className={`border-b ${HAIR} px-2 py-2.5`}>{formatDate(line.voucherDate)}</td>
-              <td className={`figure border-b ${HAIR} px-2 py-2.5 ${MUTED}`}>{formatVoucherNo(line.voucherNumber)}</td>
+              <td className={`figure border-b ${HAIR} px-2 py-2.5 ${MUTED}`}>{voucherRef('receipt', line.voucherNumber)}</td>
               <td className={`border-b ${HAIR} px-2 py-2.5 ${MUTED}`}>{line.courseName}</td>
               <td className={`figure border-b ${HAIR} px-2 py-2.5 text-end`}>
                 {formatNumber(line.courseValue)}

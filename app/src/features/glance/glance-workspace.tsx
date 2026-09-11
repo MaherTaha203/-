@@ -58,7 +58,6 @@ export function GlanceWorkspace() {
 
       <header>
         <h1 className="editorial text-[clamp(1.6rem,3vw,2.1rem)] text-foreground">مرحبًا بك في أرض كنعان</h1>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">متابعة سريعة لحركة المركز الماليّ</p>
       </header>
 
       <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_320px]">

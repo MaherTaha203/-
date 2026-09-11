@@ -101,7 +101,6 @@ export function FinancialReportWorkspace() {
     return financialTotals(movements.filter((movement) => movement.voucherDate < start)).net
   }, [movements, start])
   const totals = useMemo(() => financialTotals(scoped), [scoped])
-  const closing = opening + totals.net
   const viewMovements = useMemo(() => {
     const ordered = movementsNewestFirst(scoped)
     if (view === 'receipts') return ordered.filter((m) => m.movementType === 'receipt')
@@ -151,7 +150,6 @@ export function FinancialReportWorkspace() {
     [movements, matchesAccount, genStart],
   )
   const genTotals = useMemo(() => financialTotals(genScoped), [genScoped])
-  const genClosing = genOpening + genTotals.net
   const genRows = useMemo(() => withRunningBalance(genScoped, genOpening), [genScoped, genOpening])
   const rangeLabel = fromDate || toDate ? `${fromDate ? formatDate(fromDate) : '…'} — ${toDate ? formatDate(toDate) : '…'}` : periodLabel
   const generalScopeLabel = accountName ? `${accountName} · ${rangeLabel}` : rangeLabel
@@ -243,7 +241,7 @@ export function FinancialReportWorkspace() {
       ) : null}
 
       {view === 'general' ? (
-        <GeneralSummary net={genTotals.net} totalIn={genTotals.totalIn} totalOut={genTotals.totalOut} opening={genOpening} closing={genClosing} periodLabel={generalScopeLabel} />
+        <GeneralSummary net={genTotals.net} totalIn={genTotals.totalIn} totalOut={genTotals.totalOut} periodLabel={generalScopeLabel} />
       ) : (
         <SidedSummary view={view} amount={view === 'receipts' ? totals.totalIn : totals.totalOut} count={viewMovements.length} periodLabel={periodLabel} />
       )}
@@ -288,9 +286,9 @@ export function FinancialReportWorkspace() {
 
       {printing ? (
         view === 'general' ? (
-          <FinancialReportPrint view={view} title={title} net={genTotals.net} totalIn={genTotals.totalIn} totalOut={genTotals.totalOut} opening={genOpening} closing={genClosing} receiptCount={receiptCount(genScoped)} paymentCount={paymentCount(genScoped)} movements={genScoped} periodLabel={generalScopeLabel} onClose={() => setPrinting(false)} />
+          <FinancialReportPrint view={view} title={title} net={genTotals.net} totalIn={genTotals.totalIn} totalOut={genTotals.totalOut} opening={genOpening} receiptCount={receiptCount(genScoped)} paymentCount={paymentCount(genScoped)} movements={genScoped} periodLabel={generalScopeLabel} onClose={() => setPrinting(false)} />
         ) : (
-          <FinancialReportPrint view={view} title={title} net={totals.net} totalIn={totals.totalIn} totalOut={totals.totalOut} opening={opening} closing={closing} receiptCount={receiptCount(scoped)} paymentCount={paymentCount(scoped)} movements={viewMovements} periodLabel={periodLabel} onClose={() => setPrinting(false)} />
+          <FinancialReportPrint view={view} title={title} net={totals.net} totalIn={totals.totalIn} totalOut={totals.totalOut} opening={opening} receiptCount={receiptCount(scoped)} paymentCount={paymentCount(scoped)} movements={viewMovements} periodLabel={periodLabel} onClose={() => setPrinting(false)} />
         )
       ) : null}
       {printStudent ? <StudentStatementPrint studentName={printStudent.student.name} paid={printStudent.paid} remaining={printStudent.remaining} courses={printStudent.courses} lines={statementFor(statementLines, printStudent.student.id)} onClose={() => setPrintStudentId(null)} /> : null}
@@ -404,29 +402,25 @@ function ScopeOption({ label, active = false, onClick }: { label: string; active
   )
 }
 
-function GeneralSummary({ net, totalIn, totalOut, opening, closing, periodLabel }: { net: number; totalIn: number; totalOut: number; opening: number; closing: number; periodLabel: string }) {
-  // A simple horizontal summary row (not cards): opening, receipts, payments and
-  // the closing balance side by side, so the statement's key figures read at a
-  // glance while the table stays the focus. The net / period detail expands on
-  // demand — starting open when the operator turned off the default collapse.
+function GeneralSummary({ net, totalIn, totalOut, periodLabel }: { net: number; totalIn: number; totalOut: number; periodLabel: string }) {
+  // Receipts, payments and net for the scope — opening/closing are deliberately
+  // NOT shown here: they live once in the ledger below (its opening-balance row
+  // and its final running balance). The summary collapses by default per the
+  // "طيّ ملخّص كشف الحساب افتراضيًّا" setting.
   const collapseByDefault = useSettingsStore((state) => state.settings.collapseStatementSummary)
   const [open, setOpen] = useState(!collapseByDefault)
   return (
-    <section className="border-y border-border py-3.5">
-      <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-        <SummaryFigure label="الرصيد الافتتاحي" value={opening} />
-        <SummaryFigure label="إجمالي المقبوضات" value={totalIn} tone="in" />
-        <SummaryFigure label="إجمالي المدفوعات" value={totalOut} tone="out" />
-        <SummaryFigure label="الرصيد الختامي" value={closing} strong />
-        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="ms-auto inline-flex items-center gap-1 text-[12px] font-semibold text-olive">
-          تفاصيل الملخّص
-          <ChevronDown className={`size-3.5 transition-transform ${open ? '-rotate-180' : ''}`} />
-        </button>
-      </div>
+    <section className="border-y border-border py-3">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="inline-flex items-center gap-1 text-[12px] font-semibold text-olive">
+        ملخّص الكشف
+        <ChevronDown className={`size-3.5 transition-transform ${open ? '-rotate-180' : ''}`} />
+      </button>
       {open ? (
-        <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-[13px]">
-          <span className="text-muted-foreground">صافي التدفّق النقديّ <Money value={net} currency={false} className={`font-semibold ${net < 0 ? 'text-clay' : 'text-foreground'}`} /></span>
-          <span className="text-faint">النطاق: {periodLabel}</span>
+        <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-2">
+          <SummaryFigure label="إجمالي المقبوضات" value={totalIn} tone="in" />
+          <SummaryFigure label="إجمالي المدفوعات" value={totalOut} tone="out" />
+          <SummaryFigure label="صافي التدفّق النقديّ" value={net} strong />
+          <span className="ms-auto text-[12px] text-faint">النطاق: {periodLabel}</span>
         </div>
       ) : null}
     </section>

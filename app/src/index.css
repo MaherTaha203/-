@@ -238,4 +238,13 @@ select:focus-visible {
   .print-sheet {
     box-shadow: none !important;
   }
+
+  /* Multi-page printouts: repeat the table head on each page and never split a
+     row across the page break. */
+  .print-sheet thead {
+    display: table-header-group;
+  }
+  .print-sheet tr {
+    break-inside: avoid;
+  }
 }

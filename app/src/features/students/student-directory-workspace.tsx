@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { ArrowDownLeft, ChevronDown, ChevronLeft, Search } from 'lucide-react'
+import { ChevronDown, ChevronLeft, Search } from 'lucide-react'
 
 import { ConfigNotice, ErrorNotice } from '@/components/shell/notices'
 import { RouteHeader } from '@/components/shell/route-header'
@@ -32,7 +32,6 @@ export function StudentDirectoryWorkspace() {
   const reload = useWorkspaceStore((state) => state.load)
   const selectStudent = useShellStore((state) => state.selectStudent)
   const navigateStudents = useShellStore((state) => state.navigateStudents)
-  const openReceiveFor = useShellStore((state) => state.openReceiveFor)
 
   const [query, setQuery] = useState('')
   const [previewId, setPreviewId] = useState<string | null>(null)
@@ -104,7 +103,6 @@ export function StudentDirectoryWorkspace() {
 
         <StudentPreviewPanel
           item={preview}
-          onQuickReceive={() => preview && openReceiveFor(preview.student.name)}
           onOpenStatement={() => {
             if (!preview) return
             selectStudent(preview.student.id)
@@ -144,11 +142,9 @@ function DirectoryRow({ item, selected, onSelect }: { item: StudentAggregate; se
 
 function StudentPreviewPanel({
   item,
-  onQuickReceive,
   onOpenStatement,
 }: {
   item: StudentAggregate | null
-  onQuickReceive: () => void
   onOpenStatement: () => void
 }) {
   if (!item) {
@@ -187,11 +183,7 @@ function StudentPreviewPanel({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col gap-2">
-        <Button variant="gold" size="sm" onClick={onQuickReceive}>
-          <ArrowDownLeft className="size-4" />
-          تسجيل دفعة
-        </Button>
+      <div className="mt-4">
         <Button variant="quiet" size="sm" onClick={onOpenStatement}>
           <ChevronLeft className="size-4" />
           فتح الكشف الكامل

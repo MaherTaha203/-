@@ -1,23 +1,36 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
-import { ArrowDownLeft, ChevronLeft } from 'lucide-react'
+import { User } from 'lucide-react'
 
 import { ConfigNotice, ErrorNotice } from '@/components/shell/notices'
-import { Button } from '@/components/ui/button'
 import { Money } from '@/components/ui/money'
 import { Skeleton, SkeletonRows } from '@/components/ui/skeleton'
-import { aggregateStudents, attentionList, financialTotals, type StudentAggregate } from '@/lib/aggregate'
-import { formatNumber } from '@/lib/format'
+import { aggregateStudents, attentionList, financialTotals, movementsNewestFirst } from '@/lib/aggregate'
+import { formatDate, formatNumber } from '@/lib/format'
+import type { FinancialMovement } from '@/types/domain'
 import { useSettingsStore } from '@/store/use-settings-store'
 import { useShellStore } from '@/store/use-shell-store'
 import { useWorkspaceStore } from '@/store/use-workspace-store'
 
-// How many attention rows the list can reveal in total ("عرض المزيد" cap). The
-// collapsed count — how many show first — is operator-configurable.
-const ATTENTION_LIMIT = 10
+const RECENT_LIMIT = 6
 
-// The Glance is a work entry point, not a dashboard: one cash position, a short
-// attention list, and the day's actions. Figures remain derived from vouchers.
+function todayLong(): string {
+  return new Intl.DateTimeFormat('ar-EG', {
+    numberingSystem: 'latn',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date())
+}
+
+function statement(movement: FinancialMovement): string {
+  const party = movement.movementType === 'receipt' ? movement.partyName ?? '—' : 'المركز'
+  return movement.context ? `${party} · ${movement.context}` : party
+}
+
+// The home page: a quick read of the centre's position — cash on hand, today's
+// date, the latest movements, and students who still owe. Plain and text-first;
+// the only icons are the student marks.
 export function GlanceWorkspace() {
   const students = useWorkspaceStore((state) => state.students)
   const statementLines = useWorkspaceStore((state) => state.statementLines)
@@ -29,166 +42,131 @@ export function GlanceWorkspace() {
 
   const navigate = useShellStore((state) => state.navigate)
   const selectStudent = useShellStore((state) => state.selectStudent)
-  const openReceiveFor = useShellStore((state) => state.openReceiveFor)
-  const navigateStudents = useShellStore((state) => state.navigateStudents)
-
-  const attentionCollapsed = useSettingsStore((state) => state.settings.attentionCount)
-
-  const [previewId, setPreviewId] = useState<string | null>(null)
-  const [showAllAttention, setShowAllAttention] = useState(false)
+  const attentionCount = useSettingsStore((state) => state.settings.attentionCount)
 
   const totals = useMemo(() => financialTotals(movements), [movements])
+  const recent = useMemo(() => movementsNewestFirst(movements).slice(0, RECENT_LIMIT), [movements])
   const attention = useMemo(
-    () => attentionList(aggregateStudents(students, statementLines)).slice(0, ATTENTION_LIMIT),
-    [students, statementLines],
-  )
-  const visibleAttention = showAllAttention ? attention : attention.slice(0, attentionCollapsed)
-  const preview = useMemo(
-    () => (previewId ? attention.find((item) => item.student.id === previewId) ?? null : null),
-    [attention, previewId],
+    () => attentionList(aggregateStudents(students, statementLines)).slice(0, attentionCount),
+    [students, statementLines, attentionCount],
   )
 
   return (
-    <div className="space-y-9">
+    <div className="space-y-6">
       <ConfigNotice />
       <ErrorNotice message={error} onDismiss={clearError} onRetry={reload} />
 
-      <header className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-        <h1 className="editorial text-[clamp(1.5rem,2.6vw,1.9rem)] text-foreground">الرئيسية</h1>
-        <div className="text-[11.5px] font-bold tracking-wide text-olive">أرض كنعان</div>
+      <header>
+        <h1 className="editorial text-[clamp(1.6rem,3vw,2.1rem)] text-foreground">مرحبًا بك في أرض كنعان</h1>
+        <p className="mt-1 text-[13.5px] text-muted-foreground">متابعة سريعة لحركة المركز الماليّ</p>
       </header>
 
-      <section aria-label="الرصيد النقديّ للمركز" className="border-y border-border py-7 sm:py-8">
-        <div className="text-[13px] font-medium text-muted-foreground">الرصيد النقديّ للمركز</div>
-        {!loaded ? (
-          <div role="status" aria-label="جارٍ التحميل">
-            <Skeleton className="mt-3 h-12 w-56 md:h-14" />
-            <Skeleton className="mt-5 h-4 w-44" />
-          </div>
-        ) : (
-          <>
-            <Money
-              value={totals.net}
-              className={`mt-2 block text-[44px] font-semibold leading-none md:text-[56px] ${
-                totals.net < 0 ? 'text-clay' : 'text-foreground'
-              }`}
-              currencyClassName="text-[0.32em]"
-            />
-            <div className="mt-5 flex flex-wrap items-center gap-x-7 gap-y-1 text-[13px] text-muted-foreground">
-              <span>
-                المقبوضات <Money value={totals.totalIn} currency={false} className="font-semibold text-gold" />
-              </span>
-              <span>
-                المدفوعات <Money value={totals.totalOut} currency={false} className="font-semibold text-clay" />
-              </span>
-            </div>
-          </>
-        )}
-      </section>
-
-      <section aria-labelledby="attention-heading" className="border-b border-border pb-7 sm:pb-8">
-        <div className="flex items-baseline justify-between gap-4">
-          <h2 id="attention-heading" className="text-base font-semibold text-foreground">
-            طلاب لديهم أرصدة مستحقة
-          </h2>
-          <button type="button" onClick={() => navigate('students')} className="text-xs font-semibold text-olive">
-            دليل الطلاب
-          </button>
-        </div>
-
-        <div className="mt-2">
+      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_320px]">
+        <section aria-label="الرصيد النقديّ للمركز" className="rounded-2xl border border-border bg-panel px-6 py-6">
+          <div className="text-[13px] font-medium text-muted-foreground">الرصيد النقديّ الحالي</div>
           {!loaded ? (
-            <SkeletonRows rows={3} />
-          ) : attention.length > 0 ? (
-            <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_300px]">
-              <div>
-                {visibleAttention.map((item) => (
-                  <div
-                    key={item.student.id}
-                    className={`flex items-center gap-3 border-b border-border py-2.5 last:border-b-0 ${item.student.id === previewId ? 'bg-highlight' : ''}`}
-                  >
-                    <span aria-hidden className="grid size-9 flex-none place-items-center rounded-full bg-olive-weak text-sm font-bold text-olive">
-                      {item.student.name.charAt(0)}
-                    </span>
-                    <div className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{item.student.name}</div>
-                    <Money value={item.remaining} currency={false} className="text-sm font-bold text-warn" />
-                    <Button variant="quiet" size="sm" onClick={() => setPreviewId(item.student.id)}>
-                      عرض
-                    </Button>
-                  </div>
-                ))}
-                {!showAllAttention && attention.length > attentionCollapsed ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllAttention(true)}
-                    className="w-full py-2.5 text-center text-xs font-semibold text-olive"
-                  >
-                    عرض المزيد ({attention.length - attentionCollapsed})
-                  </button>
-                ) : null}
-              </div>
-
-              <AttentionPreviewPanel
-                item={preview}
-                onQuickReceive={() => preview && openReceiveFor(preview.student.name)}
-                onOpenStatement={() => {
-                  if (!preview) return
-                  selectStudent(preview.student.id)
-                  navigateStudents('statement')
-                }}
-              />
-            </div>
+            <Skeleton className="mt-3 h-11 w-48" />
           ) : (
-            <p className="py-8 text-center text-sm text-faint">لا توجد أرصدة مستحقة.</p>
+            <>
+              <Money
+                value={totals.net}
+                className={`mt-2 block text-[40px] font-semibold leading-none ${totals.net < 0 ? 'text-clay' : 'text-foreground'}`}
+                currencyClassName="text-[0.34em]"
+              />
+              <div className="mt-5 flex flex-wrap gap-x-8 gap-y-1 text-[13px] text-muted-foreground">
+                <span>المقبوضات <Money value={totals.totalIn} currency={false} className="font-semibold text-gold" /></span>
+                <span>المدفوعات <Money value={totals.totalOut} currency={false} className="font-semibold text-clay" /></span>
+              </div>
+            </>
           )}
-        </div>
+        </section>
+
+        <section aria-label="تاريخ اليوم" className="rounded-2xl border border-border bg-panel px-6 py-6">
+          <div className="text-[13px] font-medium text-muted-foreground">التاريخ اليوم</div>
+          <div className="figure mt-2 text-2xl font-semibold text-foreground">{todayLong()}</div>
+        </section>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section aria-labelledby="recent-heading" className="rounded-2xl border border-border bg-panel">
+          <div className="flex items-baseline justify-between gap-4 border-b border-border px-5 py-4">
+            <h2 id="recent-heading" className="text-base font-bold text-foreground">آخر العمليات</h2>
+            <button type="button" onClick={() => navigate('report')} className="text-xs font-semibold text-olive">عرض الكل</button>
+          </div>
+          <div className="overflow-x-auto">
+            {!loaded ? (
+              <div className="p-4"><SkeletonRows rows={5} /></div>
+            ) : recent.length > 0 ? (
+              <table className="w-full min-w-[560px] border-collapse text-sm">
+                <thead><tr className="text-[11px] tracking-wide text-faint">
+                  <th className="border-b border-border px-4 py-2.5 text-start font-semibold">التاريخ</th>
+                  <th className="border-b border-border px-4 py-2.5 text-start font-semibold">النوع</th>
+                  <th className="border-b border-border px-4 py-2.5 text-start font-semibold">البيان</th>
+                  <th className="border-b border-border px-4 py-2.5 text-end font-semibold">المبلغ</th>
+                  <th className="border-b border-border px-4 py-2.5 text-start font-semibold">الحالة</th>
+                </tr></thead>
+                <tbody>
+                  {recent.map((movement) => {
+                    const isReceipt = movement.movementType === 'receipt'
+                    return (
+                      <tr key={`${movement.movementType}-${movement.id}`}>
+                        <td className="figure whitespace-nowrap border-b border-border px-4 py-2.5">{formatDate(movement.voucherDate)}</td>
+                        <td className="border-b border-border px-4 py-2.5">
+                          <span className={isReceipt ? 'text-gold' : 'text-clay'}>{isReceipt ? 'سند قبض' : 'سند صرف'}</span>
+                        </td>
+                        <td className="border-b border-border px-4 py-2.5 text-muted-foreground">{statement(movement)}</td>
+                        <td className={`figure border-b border-border px-4 py-2.5 text-end font-bold ${isReceipt ? 'text-gold' : 'text-clay'}`}>{isReceipt ? '+' : '−'}{formatNumber(movement.amount)}</td>
+                        <td className="border-b border-border px-4 py-2.5">
+                          <span className="inline-flex border border-gold/25 bg-gold-weak px-2.5 py-0.5 text-[11px] font-medium text-gold">مُرحَّل</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <p className="px-5 py-10 text-center text-sm text-faint">لا توجد عمليات بعد.</p>
+            )}
+          </div>
+        </section>
+
+        <section aria-labelledby="attention-heading" className="rounded-2xl border border-border bg-panel">
+          <div className="flex items-baseline justify-between gap-4 border-b border-border px-5 py-4">
+            <h2 id="attention-heading" className="text-base font-bold text-foreground">طلاب لديهم أرصدة مستحقة</h2>
+            <button type="button" onClick={() => navigate('students')} className="text-xs font-semibold text-olive">عرض الطلاب</button>
+          </div>
+          <div className="px-2 py-1.5">
+            {!loaded ? (
+              <div className="p-3"><SkeletonRows rows={3} /></div>
+            ) : attention.length > 0 ? (
+              attention.map((item) => (
+                <button
+                  key={item.student.id}
+                  type="button"
+                  onClick={() => selectStudent(item.student.id)}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start hover:bg-highlight"
+                >
+                  <span aria-hidden className="grid size-9 flex-none place-items-center rounded-full bg-olive-weak text-olive">
+                    <User className="size-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-foreground">{item.student.name}</span>
+                    <span className="text-[11px] font-medium text-warn">مستحق</span>
+                  </span>
+                  <Money value={item.remaining} currency={false} className="text-sm font-bold text-warn" />
+                </button>
+              ))
+            ) : (
+              <p className="px-3 py-8 text-center text-sm text-faint">لا توجد أرصدة مستحقة.</p>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <section className="rounded-2xl border border-border bg-panel px-6 py-5">
+        <p className="text-[15px] font-semibold text-foreground">الالتزام الماليّ … أساس الاستمراريّة</p>
+        <p className="mt-1 text-[12px] font-bold tracking-wide text-olive">أرض كنعان</p>
       </section>
-    </div>
-  )
-}
-
-function AttentionPreviewPanel({
-  item,
-  onQuickReceive,
-  onOpenStatement,
-}: {
-  item: StudentAggregate | null
-  onQuickReceive: () => void
-  onOpenStatement: () => void
-}) {
-  if (!item) {
-    return (
-      <div className="hidden rounded-xl border border-dashed border-border-strong p-5 text-center text-sm text-faint md:block">
-        اختر طالبًا من القائمة لعرض ملخّص حسابه هنا.
-      </div>
-    )
-  }
-
-  return (
-    <div className="rounded-xl border border-border-strong bg-panel p-4">
-      <div className="flex items-center gap-3">
-        <span aria-hidden className="editorial grid size-11 flex-none place-items-center rounded-full bg-olive text-lg text-white">{item.student.name.charAt(0)}</span>
-        <div className="min-w-0">
-          <div className="truncate text-sm font-bold text-foreground">{item.student.name}</div>
-          <div className="text-[12px] text-muted-foreground">رصيد مستحق على {formatNumber(item.courses)} دورة</div>
-        </div>
-      </div>
-
-      <div className="mt-4 border-t border-border pt-4">
-        <div className="text-[11px] font-medium text-faint">الرصيد المستحق</div>
-        <Money value={item.remaining} currency={false} className="text-xl font-bold text-warn" />
-      </div>
-
-      <div className="mt-4 flex flex-col gap-2">
-        <Button variant="gold" size="sm" onClick={onQuickReceive}>
-          <ArrowDownLeft className="size-4" />
-          تسجيل دفعة
-        </Button>
-        <Button variant="quiet" size="sm" onClick={onOpenStatement}>
-          <ChevronLeft className="size-4" />
-          فتح الكشف الكامل
-        </Button>
-      </div>
     </div>
   )
 }

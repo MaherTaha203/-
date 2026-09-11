@@ -13,7 +13,6 @@ type FinancialReportPrintProps = {
   totalIn: number
   totalOut: number
   opening: number
-  closing: number
   receiptCount: number
   paymentCount: number
   movements: FinancialMovement[]
@@ -38,7 +37,6 @@ export function FinancialReportPrint({
   totalIn,
   totalOut,
   opening,
-  closing,
   receiptCount,
   paymentCount,
   movements,
@@ -56,7 +54,6 @@ export function FinancialReportPrint({
       onClose={onClose}
       meta={
         <>
-          <div className="font-semibold text-[#0f172a]">{title}</div>
           {periodLabel ? <div>الفترة · {periodLabel}</div> : null}
           <div>
             التاريخ <span className="figure">{formatDate(todayIsoDate())}</span>
@@ -68,12 +65,12 @@ export function FinancialReportPrint({
       }
     >
       {view === 'general' ? (
-        <div className="grid grid-cols-2 gap-4 border-y border-[#e2e8f0] py-5 sm:grid-cols-5">
-          <SummaryCell label="الرصيد الافتتاحي" value={opening} />
+        // Opening and closing balances are not repeated here — they live in the
+        // ledger below (the opening-balance row and the final running balance).
+        <div className="grid grid-cols-3 gap-4 border-y border-[#e2e8f0] py-5">
           <SummaryCell label="إجمالي المقبوضات" value={totalIn} color="text-[#059669]" />
           <SummaryCell label="إجمالي المدفوعات" value={totalOut} color="text-[#dc2626]" />
           <SummaryCell label="صافي التدفق النقدي" value={net} />
-          <SummaryCell label="الرصيد الختامي" value={closing} />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 border-y border-[#e2e8f0] py-5">

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { ArrowDownLeft, Pencil, Printer, Search } from 'lucide-react'
+import { Pencil, Printer, Search } from 'lucide-react'
 
 import { ConfigNotice, ErrorNotice } from '@/components/shell/notices'
 import { RouteHeader } from '@/components/shell/route-header'
@@ -36,7 +36,6 @@ export function StudentsWorkspace() {
 
   const selectedStudentId = useShellStore((state) => state.selectedStudentId)
   const selectStudent = useShellStore((state) => state.selectStudent)
-  const openReceiveFor = useShellStore((state) => state.openReceiveFor)
   const openEditStudent = useShellStore((state) => state.openEditStudent)
   const navigateStudents = useShellStore((state) => state.navigateStudents)
 
@@ -90,7 +89,7 @@ export function StudentsWorkspace() {
           </div>
 
           <div className="border-t border-border-strong">
-            {!loaded ? <div className="p-3"><SkeletonRows rows={6} /></div> : filtered.length > 0 ? filtered.map((item) => <StudentRow key={item.student.id} item={item} active={item.student.id === activeId} onSelect={() => selectStudent(item.student.id)} onQuickReceive={() => openReceiveFor(item.student.name)} />) : <p className="px-4 py-8 text-center text-sm text-faint">لا نتائج مطابقة.</p>}
+            {!loaded ? <div className="p-3"><SkeletonRows rows={6} /></div> : filtered.length > 0 ? filtered.map((item) => <StudentRow key={item.student.id} item={item} active={item.student.id === activeId} onSelect={() => selectStudent(item.student.id)} />) : <p className="px-4 py-8 text-center text-sm text-faint">لا نتائج مطابقة.</p>}
           </div>
         </div>
 
@@ -115,7 +114,6 @@ export function StudentsWorkspace() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Button variant="quiet" size="sm" onClick={() => openEditStudent(active.student.id)}><Pencil className="size-4" />تعديل بيانات الطالب</Button>
                   <Button variant="quiet" size="sm" onClick={() => setPrinting(true)}><Printer className="size-4" />طباعة الكشف</Button>
-                  <Button variant="quiet" size="sm" onClick={() => openReceiveFor(active.student.name)}><ArrowDownLeft className="size-4" />تسجيل دفعة</Button>
                 </div>
               </div>
 
@@ -149,17 +147,16 @@ export function StudentsWorkspace() {
   )
 }
 
-function StudentRow({ item, active, onSelect, onQuickReceive }: { item: StudentAggregate; active: boolean; onSelect: () => void; onQuickReceive: () => void }) {
+function StudentRow({ item, active, onSelect }: { item: StudentAggregate; active: boolean; onSelect: () => void }) {
   const status = statusOf(item)
   const statusLabel = status === 'ok' ? 'مسدَّد بالكامل' : status === 'due' ? 'رصيد مستحق' : 'غير مسدَّد'
-  return <div className={`flex items-center gap-2 border-b border-border last:border-b-0 ${active ? 'bg-highlight' : ''}`}>
-    <button type="button" onClick={onSelect} aria-current={active ? 'true' : undefined} className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pe-1 ps-4 text-start">
+  return <div className={`border-b border-border last:border-b-0 ${active ? 'bg-highlight' : ''}`}>
+    <button type="button" onClick={onSelect} aria-current={active ? 'true' : undefined} className="flex w-full min-w-0 items-center gap-3 py-2.5 pe-3 ps-4 text-start">
       <span className="grid size-8 flex-none place-items-center rounded-full bg-olive-weak text-[13px] font-bold text-olive">{item.student.name.charAt(0)}</span>
       <span className="min-w-0 flex-1 truncate text-sm text-foreground">{item.student.name}</span>
       <span className="text-[11px] font-medium text-muted-foreground">{statusLabel}</span>
       {item.remaining > REMAINING_EPSILON ? <Money value={item.remaining} currency={false} className="text-xs font-semibold text-warn" /> : null}
     </button>
-    <button type="button" onClick={onQuickReceive} aria-label={`سند قبض لـ ${item.student.name}`} title="سند قبض" className="me-2 flex flex-none items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium text-gold"><ArrowDownLeft className="size-3.5" />قبض</button>
   </div>
 }
 

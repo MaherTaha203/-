@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { Ban, ChevronDown, Eye, Pencil, Printer, RotateCw, Users } from 'lucide-react'
+import { Ban, ChevronDown, Eye, Pencil, Printer, RotateCw, Search, Users } from 'lucide-react'
 
 import { ConfigNotice, ErrorNotice } from '@/components/shell/notices'
 import { RouteHeader } from '@/components/shell/route-header'
@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Money } from '@/components/ui/money'
 import { SkeletonRows } from '@/components/ui/skeleton'
-import type { StudentAggregate } from '@/lib/aggregate'
 import { aggregateStudents, financialTotals, movementsNewestFirst, paymentCount, receiptCount, statementFor } from '@/lib/aggregate'
 import { withRunningBalance, type RunningMovement } from '@/lib/statement-rows'
 import { formatDate, formatNumber } from '@/lib/format'
@@ -102,7 +101,6 @@ export function FinancialReportWorkspace() {
     return financialTotals(movements.filter((movement) => movement.voucherDate < start)).net
   }, [movements, start])
   const totals = useMemo(() => financialTotals(scoped), [scoped])
-  const closing = opening + totals.net
   const viewMovements = useMemo(() => {
     const ordered = movementsNewestFirst(scoped)
     if (view === 'receipts') return ordered.filter((m) => m.movementType === 'receipt')
@@ -152,10 +150,23 @@ export function FinancialReportWorkspace() {
     [movements, matchesAccount, genStart],
   )
   const genTotals = useMemo(() => financialTotals(genScoped), [genScoped])
-  const genClosing = genOpening + genTotals.net
   const genRows = useMemo(() => withRunningBalance(genScoped, genOpening), [genScoped, genOpening])
   const rangeLabel = fromDate || toDate ? `${fromDate ? formatDate(fromDate) : '…'} — ${toDate ? formatDate(toDate) : '…'}` : periodLabel
   const generalScopeLabel = accountName ? `${accountName} · ${rangeLabel}` : rangeLabel
+
+  // The print button follows the scope already chosen on the page (in the search
+  // box / tabs) — it never asks. A selected account prints that student's
+  // statement; otherwise it prints the current ledger or report.
+  function handlePrint() {
+    if (view === 'general' && accountName) {
+      const student = studentStatements.find((item) => item.student.name === accountName)
+      if (student) {
+        setPrintStudentId(student.student.id)
+        return
+      }
+    }
+    setPrinting(true)
+  }
 
   return (
     <div className="space-y-8">
@@ -164,13 +175,10 @@ export function FinancialReportWorkspace() {
         title={title}
         actions={
           <>
-            <StatementPrintMenu
-              disabled={!loaded}
-              canPrintCurrent={view === 'general' ? genScoped.length > 0 : viewMovements.length > 0}
-              students={studentStatements}
-              onPrintCurrent={() => setPrinting(true)}
-              onPrintStudent={setPrintStudentId}
-            />
+            <Button variant="quiet" onClick={handlePrint} disabled={!loaded || (view === 'general' ? genScoped.length === 0 : viewMovements.length === 0)}>
+              <Printer className="size-4" />
+              طباعة
+            </Button>
             <Button variant="outline" onClick={() => void reload()} disabled={isLoading}>
               <RotateCw className="size-4" />
               {isLoading ? 'جارٍ التحديث…' : 'تحديث'}
@@ -205,19 +213,17 @@ export function FinancialReportWorkspace() {
 
       {view === 'general' ? (
         <div className="flex flex-wrap items-end gap-4 border-b border-border pb-4">
-          <label className="flex flex-col gap-1 text-[12px] font-medium text-muted-foreground">
-            الحساب
-            <select
-              value={accountName}
-              onChange={(event) => setAccountName(event.target.value)}
-              className="h-9 min-w-[180px] rounded-md border border-border-strong bg-panel px-3 text-[13px] text-foreground"
-            >
-              <option value="">كل الحسابات</option>
-              {accountOptions.map((name) => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
-          </label>
+          <div className="flex flex-col gap-1 text-[12px] font-medium text-muted-foreground">
+            نطاق الكشف
+            <ScopeSearch
+              accountName={accountName}
+              accounts={accountOptions}
+              onPickAll={() => setAccountName('')}
+              onPickStudent={setAccountName}
+              onPickReceipts={() => navigateReport('receipts')}
+              onPickPayments={() => navigateReport('payments')}
+            />
+          </div>
           <label className="flex flex-col gap-1 text-[12px] font-medium text-muted-foreground">
             من تاريخ
             <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="figure h-9 w-40" />
@@ -235,7 +241,7 @@ export function FinancialReportWorkspace() {
       ) : null}
 
       {view === 'general' ? (
-        <GeneralSummary net={genTotals.net} totalIn={genTotals.totalIn} totalOut={genTotals.totalOut} opening={genOpening} closing={genClosing} periodLabel={generalScopeLabel} />
+        <GeneralSummary net={genTotals.net} totalIn={genTotals.totalIn} totalOut={genTotals.totalOut} periodLabel={generalScopeLabel} />
       ) : (
         <SidedSummary view={view} amount={view === 'receipts' ? totals.totalIn : totals.totalOut} count={viewMovements.length} periodLabel={periodLabel} />
       )}
@@ -280,9 +286,9 @@ export function FinancialReportWorkspace() {
 
       {printing ? (
         view === 'general' ? (
-          <FinancialReportPrint view={view} title={title} net={genTotals.net} totalIn={genTotals.totalIn} totalOut={genTotals.totalOut} opening={genOpening} closing={genClosing} receiptCount={receiptCount(genScoped)} paymentCount={paymentCount(genScoped)} movements={genScoped} periodLabel={generalScopeLabel} onClose={() => setPrinting(false)} />
+          <FinancialReportPrint view={view} title={title} net={genTotals.net} totalIn={genTotals.totalIn} totalOut={genTotals.totalOut} opening={genOpening} receiptCount={receiptCount(genScoped)} paymentCount={paymentCount(genScoped)} movements={genScoped} periodLabel={generalScopeLabel} onClose={() => setPrinting(false)} />
         ) : (
-          <FinancialReportPrint view={view} title={title} net={totals.net} totalIn={totals.totalIn} totalOut={totals.totalOut} opening={opening} closing={closing} receiptCount={receiptCount(scoped)} paymentCount={paymentCount(scoped)} movements={viewMovements} periodLabel={periodLabel} onClose={() => setPrinting(false)} />
+          <FinancialReportPrint view={view} title={title} net={totals.net} totalIn={totals.totalIn} totalOut={totals.totalOut} opening={opening} receiptCount={receiptCount(scoped)} paymentCount={paymentCount(scoped)} movements={viewMovements} periodLabel={periodLabel} onClose={() => setPrinting(false)} />
         )
       ) : null}
       {printStudent ? <StudentStatementPrint studentName={printStudent.student.name} paid={printStudent.paid} remaining={printStudent.remaining} courses={printStudent.courses} lines={statementFor(statementLines, printStudent.student.id)} onClose={() => setPrintStudentId(null)} /> : null}
@@ -292,20 +298,23 @@ export function FinancialReportWorkspace() {
   )
 }
 
-// One print control offering the whole statement's scopes: the current view
-// (everyone, or by type via the active tab) or a chosen student's statement.
-function StatementPrintMenu({
-  disabled,
-  canPrintCurrent,
-  students,
-  onPrintCurrent,
-  onPrintStudent,
+// The statement scope selector. Choosing the scope lives here in the search box
+// (not on the print button): the whole statement, receipts only, payments only,
+// or a specific account/student found by typing.
+function ScopeSearch({
+  accountName,
+  accounts,
+  onPickAll,
+  onPickStudent,
+  onPickReceipts,
+  onPickPayments,
 }: {
-  disabled: boolean
-  canPrintCurrent: boolean
-  students: StudentAggregate[]
-  onPrintCurrent: () => void
-  onPrintStudent: (studentId: string) => void
+  accountName: string
+  accounts: string[]
+  onPickAll: () => void
+  onPickStudent: (name: string) => void
+  onPickReceipts: () => void
+  onPickPayments: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -327,55 +336,47 @@ function StatementPrintMenu({
     }
   }, [open])
 
-  const withLines = students.filter((item) => item.lineCount > 0)
   const term = query.trim()
-  const filtered = term ? withLines.filter((item) => item.student.name.includes(term)) : withLines
+  const matchedStudents = term ? accounts.filter((name) => name.includes(term)) : accounts
+  const label = accountName || 'كامل كشف الحساب'
+
+  function pick(action: () => void) {
+    action()
+    setQuery('')
+    setOpen(false)
+  }
 
   return (
-    <div ref={ref} className="relative">
-      <Button variant="quiet" onClick={() => setOpen((value) => !value)} disabled={disabled} aria-haspopup="menu" aria-expanded={open}>
-        <Printer className="size-4" />
-        طباعة
-        <ChevronDown className={`size-3.5 transition-transform ${open ? '-rotate-180' : ''}`} />
-      </Button>
+    <div ref={ref} className="relative w-64">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-panel px-3 text-[13px] text-foreground"
+      >
+        <span className="flex items-center gap-2 truncate">
+          <Search className="size-4 flex-none text-faint" aria-hidden />
+          <span className="truncate">{label}</span>
+        </span>
+        <ChevronDown className={`size-3.5 flex-none text-faint transition-transform ${open ? '-rotate-180' : ''}`} />
+      </button>
       {open ? (
-        <div role="menu" className="menu-in absolute end-0 z-30 mt-1 w-72 overflow-hidden rounded-xl border border-border-strong bg-panel py-1 shadow-lg">
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              onPrintCurrent()
-              setOpen(false)
-            }}
-            disabled={!canPrintCurrent}
-            className="flex w-full items-center px-3.5 py-2.5 text-start text-sm font-semibold text-foreground disabled:opacity-40"
-          >
-            طباعة الكشف الحالي
-          </button>
-
+        <div role="listbox" className="menu-in absolute start-0 z-30 mt-1 w-72 overflow-hidden rounded-xl border border-border-strong bg-panel py-1 shadow-lg">
+          <div className="px-2.5 pb-1.5 pt-1">
+            <Input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث عن طالب أو نوع" className="h-9 text-[13px]" />
+          </div>
+          <ScopeOption label="كامل كشف الحساب" active={!accountName} onClick={() => pick(onPickAll)} />
+          <ScopeOption label="سندات القبض" onClick={() => pick(onPickReceipts)} />
+          <ScopeOption label="سندات الصرف" onClick={() => pick(onPickPayments)} />
           <div className="mt-1 flex items-center gap-1.5 border-t border-border px-3.5 pb-1 pt-2 text-[11.5px] font-semibold text-faint">
             <Users className="size-3.5" />
-            كشف طالب معيّن
-          </div>
-          <div className="px-2.5 pb-1.5">
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث عن طالب" className="h-9 text-[13px]" />
+            حساب طالب
           </div>
           <div className="max-h-56 overflow-auto">
-            {filtered.length > 0 ? (
-              filtered.map((item) => (
-                <button
-                  key={item.student.id}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    onPrintStudent(item.student.id)
-                    setOpen(false)
-                  }}
-                  className="flex w-full items-center justify-between gap-2 px-3.5 py-2 text-start text-sm text-muted-foreground"
-                >
-                  <span className="truncate">{item.student.name}</span>
-                  <Money value={item.remaining} currency={false} className={`text-[12px] font-semibold ${item.remaining > 0.0001 ? 'text-warn' : 'text-faint'}`} />
-                </button>
+            {matchedStudents.length > 0 ? (
+              matchedStudents.map((name) => (
+                <ScopeOption key={name} label={name} active={name === accountName} onClick={() => pick(() => onPickStudent(name))} />
               ))
             ) : (
               <p className="px-3.5 py-3 text-center text-[12.5px] text-faint">لا يوجد طلاب مطابقون.</p>
@@ -387,29 +388,39 @@ function StatementPrintMenu({
   )
 }
 
-function GeneralSummary({ net, totalIn, totalOut, opening, closing, periodLabel }: { net: number; totalIn: number; totalOut: number; opening: number; closing: number; periodLabel: string }) {
-  // A simple horizontal summary row (not cards): opening, receipts, payments and
-  // the closing balance side by side, so the statement's key figures read at a
-  // glance while the table stays the focus. The net / period detail expands on
-  // demand — starting open when the operator turned off the default collapse.
+function ScopeOption({ label, active = false, onClick }: { label: string; active?: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      role="option"
+      aria-selected={active}
+      onClick={onClick}
+      className={`flex w-full items-center px-3.5 py-2 text-start text-sm ${active ? 'font-semibold text-olive' : 'text-muted-foreground'}`}
+    >
+      {label}
+    </button>
+  )
+}
+
+function GeneralSummary({ net, totalIn, totalOut, periodLabel }: { net: number; totalIn: number; totalOut: number; periodLabel: string }) {
+  // Receipts, payments and net for the scope — opening/closing are deliberately
+  // NOT shown here: they live once in the ledger below (its opening-balance row
+  // and its final running balance). The summary collapses by default per the
+  // "طيّ ملخّص كشف الحساب افتراضيًّا" setting.
   const collapseByDefault = useSettingsStore((state) => state.settings.collapseStatementSummary)
   const [open, setOpen] = useState(!collapseByDefault)
   return (
-    <section className="border-y border-border py-3.5">
-      <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-        <SummaryFigure label="الرصيد الافتتاحي" value={opening} />
-        <SummaryFigure label="إجمالي المقبوضات" value={totalIn} tone="in" />
-        <SummaryFigure label="إجمالي المدفوعات" value={totalOut} tone="out" />
-        <SummaryFigure label="الرصيد الختامي" value={closing} strong />
-        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="ms-auto inline-flex items-center gap-1 text-[12px] font-semibold text-olive">
-          تفاصيل الملخّص
-          <ChevronDown className={`size-3.5 transition-transform ${open ? '-rotate-180' : ''}`} />
-        </button>
-      </div>
+    <section className="border-y border-border py-3">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="inline-flex items-center gap-1 text-[12px] font-semibold text-olive">
+        ملخّص الكشف
+        <ChevronDown className={`size-3.5 transition-transform ${open ? '-rotate-180' : ''}`} />
+      </button>
       {open ? (
-        <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-[13px]">
-          <span className="text-muted-foreground">صافي التدفّق النقديّ <Money value={net} currency={false} className={`font-semibold ${net < 0 ? 'text-clay' : 'text-foreground'}`} /></span>
-          <span className="text-faint">النطاق: {periodLabel}</span>
+        <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-2">
+          <SummaryFigure label="إجمالي المقبوضات" value={totalIn} tone="in" />
+          <SummaryFigure label="إجمالي المدفوعات" value={totalOut} tone="out" />
+          <SummaryFigure label="صافي التدفّق النقديّ" value={net} strong />
+          <span className="ms-auto text-[12px] text-faint">النطاق: {periodLabel}</span>
         </div>
       ) : null}
     </section>

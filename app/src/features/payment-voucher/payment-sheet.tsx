@@ -2,16 +2,17 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowUpRight } from 'lucide-react'
-import { useForm, type DefaultValues } from 'react-hook-form'
+import { useForm, useWatch, type DefaultValues } from 'react-hook-form'
 
 import { ActionSheet } from '@/components/shell/action-sheet'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { SmartDateInput } from '@/components/ui/smart-date-input'
 import { Textarea } from '@/components/ui/textarea'
 import { VoucherPrint } from '@/features/print/voucher-print'
 import { paymentVoucherFormSchema, type PaymentVoucherFormValues } from '@/features/payment-voucher/schema'
-import { formatNumber, todayIsoDate } from '@/lib/format'
+import { formatDate, formatNumber, todayIsoDate } from '@/lib/format'
 import { useMoneyOutStore } from '@/store/use-money-out-store'
 import { useSettingsStore } from '@/store/use-settings-store'
 import { useShellStore } from '@/store/use-shell-store'
@@ -48,6 +49,7 @@ export function PaymentSheet() {
   const [savedVoucher, setSavedVoucher] = useState<FinancialMovement | null>(null)
 
   const form = useForm<PaymentVoucherFormValues>({ resolver: zodResolver(paymentVoucherFormSchema), defaultValues: buildDefaults() })
+  const paymentDate = useWatch({ control: form.control, name: 'paymentDate' }) ?? ''
 
   useLayoutEffect(() => { clearError(); clearAdminError() }, [clearError, clearAdminError])
 
@@ -105,7 +107,7 @@ export function PaymentSheet() {
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
             <Field label="بند المصروف" error={form.formState.errors.expenseType?.message}>{(control) => <Input placeholder="مثال: إيجار، كهرباء، رواتب" readOnly={isEdit} {...control} {...form.register('expenseType')} />}</Field>
             <Field label="المبلغ المدفوع" error={form.formState.errors.amount?.message}>{(control) => <div className="flex items-center gap-2 rounded-xl border border-clay/30 bg-clay-weak/40 px-4 py-1 focus-within:border-clay"><input type="number" min="1" step="1" inputMode="numeric" readOnly={isEdit} className="figure h-12 w-full bg-transparent text-2xl font-semibold text-foreground outline-none placeholder:text-faint" placeholder="0" {...control} {...form.register('amount', { valueAsNumber: true })} /><span className="text-sm font-medium text-muted-foreground">{currencySymbol}</span></div>}</Field>
-            <Field label="تاريخ الدفع" error={form.formState.errors.paymentDate?.message}>{(control) => <Input type="date" max={maxDate} readOnly={isEdit} className="figure" {...control} {...form.register('paymentDate')} />}</Field>
+            <Field label="تاريخ الدفع" error={form.formState.errors.paymentDate?.message}>{(control) => isEdit ? <Input readOnly dir="ltr" className="figure" value={formatDate(paymentDate)} {...control} /> : <SmartDateInput max={maxDate} value={paymentDate} onChange={(iso) => form.setValue('paymentDate', iso, { shouldValidate: true })} {...control} />}</Field>
             <Field label="الملاحظات" error={form.formState.errors.notes?.message}>{(control) => <Textarea placeholder="ملاحظات اختيارية" {...control} {...form.register('notes')} />}</Field>
             <Button type="submit" size="lg" variant="default" className="w-full" disabled={busy}><ArrowUpRight className="size-4" />{busy ? 'جارٍ الحفظ…' : isEdit ? 'حفظ التعديل' : 'حفظ سند الصرف'}</Button>
           </form>

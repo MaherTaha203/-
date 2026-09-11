@@ -10,7 +10,7 @@ import { Money } from '@/components/ui/money'
 import { SkeletonRows } from '@/components/ui/skeleton'
 import { aggregateStudents, statementFor, type StudentAggregate } from '@/lib/aggregate'
 import { formatDate, formatNumber } from '@/lib/format'
-import { formatVoucherNo } from '@/lib/voucher'
+import { voucherRef } from '@/lib/voucher'
 import { normalizeArabic } from '@/lib/text'
 import { useShellStore } from '@/store/use-shell-store'
 import { useWorkspaceStore } from '@/store/use-workspace-store'
@@ -96,17 +96,17 @@ export function StudentsWorkspace() {
         <section className="min-w-0 border-y border-border py-6" aria-label={`كشف حساب ${active?.student.name ?? ''}`}>
           {active ? (
             <>
-              <div className="mb-6 flex flex-wrap items-center gap-4 border-b border-border pb-6">
-                <span className="editorial grid size-14 flex-none place-items-center rounded-full bg-olive text-2xl text-white">{active.student.name.charAt(0)}</span>
+              <div className="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-4 border-b border-border pb-6">
                 <div className="min-w-0">
                   <h2 className="editorial text-2xl text-foreground">{active.student.name}</h2>
-                  <div className="text-[13px] text-muted-foreground">{formatNumber(active.courses)} دورة · آخر حركة {active.lastActivity ? formatDate(active.lastActivity) : '—'}</div>
-                  {active.student.idNumber || active.student.phone ? <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-[12.5px] text-faint">
-                    {active.student.idNumber ? <span>الرقم التعريفي <span className="figure text-muted-foreground" dir="ltr">{active.student.idNumber}</span></span> : null}
-                    {active.student.phone ? <span>الهاتف <span className="figure text-muted-foreground" dir="ltr">{active.student.phone}</span></span> : null}
-                  </div> : null}
+                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[12.5px]">
+                    <span><span className="text-faint">الدورات</span> <span className="figure font-semibold text-foreground">{formatNumber(active.courses)}</span></span>
+                    <span><span className="text-faint">آخر حركة</span> <span className="figure font-semibold text-foreground">{active.lastActivity ? formatDate(active.lastActivity) : '—'}</span></span>
+                    {active.student.idNumber ? <span><span className="text-faint">الرقم التعريفي</span> <span className="figure font-semibold text-foreground" dir="ltr">{active.student.idNumber}</span></span> : null}
+                    {active.student.phone ? <span><span className="text-faint">الهاتف</span> <span className="figure font-semibold text-foreground" dir="ltr">{active.student.phone}</span></span> : null}
+                  </div>
                 </div>
-                <div className="ms-auto flex gap-8"><RecordFigure label="المسدَّد" value={active.paid} tone="ink" /><RecordFigure label="الرصيد المستحق" value={active.remaining} tone="warn" /></div>
+                <div className="flex gap-8"><RecordFigure label="المسدَّد" value={active.paid} tone="ink" /><RecordFigure label="الرصيد المستحق" value={active.remaining} tone="warn" /></div>
               </div>
 
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -129,7 +129,7 @@ export function StudentsWorkspace() {
                   </tr></thead>
                   <tbody>{activeLines.length > 0 ? activeLines.map((line) => <tr key={line.id}>
                     <td className="figure whitespace-nowrap border-b border-border px-2.5 py-3.5">{formatDate(line.voucherDate)}</td>
-                    <td className="figure border-b border-border px-2.5 py-3.5 text-muted-foreground">{formatVoucherNo(line.voucherNumber)}</td>
+                    <td className="figure border-b border-border px-2.5 py-3.5 text-muted-foreground">{voucherRef('receipt', line.voucherNumber)}</td>
                     <td className="border-b border-border px-2.5 py-3.5 text-muted-foreground">{line.courseName}</td>
                     <td className="figure border-b border-border px-2.5 py-3.5 text-end">{formatNumber(line.courseValue)}</td>
                     <td className="figure border-b border-border px-2.5 py-3.5 text-end font-medium">{formatNumber(line.amountReceived)}</td>

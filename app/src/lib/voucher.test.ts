@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatVoucherNo, voucherLabel, voucherTypeLabel } from '@/lib/voucher'
+import { formatVoucherNo, voucherLabel, voucherRef, voucherTypeLabel } from '@/lib/voucher'
 
 describe('formatVoucherNo', () => {
   it('renders bare Latin digits with no grouping', () => {
@@ -26,5 +26,16 @@ describe('voucher labels', () => {
   it('builds the full "type — رقم N" label with no letter prefix', () => {
     expect(voucherLabel('receipt', 104)).toBe('سند قبض — رقم 104')
     expect(voucherLabel('payment', 27)).toBe('سند صرف — رقم 27')
+  })
+})
+
+describe('voucherRef', () => {
+  it('prefixes by type and zero-pads to three digits', () => {
+    expect(voucherRef('receipt', 15)).toBe('R-015')
+    expect(voucherRef('payment', 10)).toBe('P-010')
+  })
+
+  it('does not truncate numbers already wider than three digits', () => {
+    expect(voucherRef('receipt', 1040)).toBe('R-1040')
   })
 })

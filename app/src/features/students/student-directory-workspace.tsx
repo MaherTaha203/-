@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { ChevronDown, ChevronLeft, Search } from 'lucide-react'
+import { ChevronDown, ChevronLeft, Search, User } from 'lucide-react'
 
 import { ConfigNotice, ErrorNotice } from '@/components/shell/notices'
 import { RouteHeader } from '@/components/shell/route-header'
@@ -120,7 +120,7 @@ function DirectoryRow({ item, selected, onSelect }: { item: StudentAggregate; se
   return (
     <div className={`border-b border-border last:border-b-0 ${selected ? 'bg-highlight' : ''}`}>
       <button type="button" onClick={onSelect} aria-pressed={selected} className="flex w-full items-center gap-3 px-4 py-2.5 text-start">
-        <span aria-hidden className="grid size-9 flex-none place-items-center rounded-full bg-olive-weak text-sm font-bold text-olive">{item.student.name.charAt(0)}</span>
+        <span aria-hidden className="grid size-9 flex-none place-items-center rounded-full bg-olive-weak text-olive"><User className="size-4" /></span>
         <span className="min-w-0 flex-1 truncate text-sm text-foreground">{item.student.name}</span>
         <span className="text-xs font-medium text-muted-foreground">{statusLabel}</span>
         <Money value={item.remaining} currency={false} className={item.remaining > REMAINING_EPSILON ? 'text-sm font-bold text-warn' : 'text-sm font-bold text-foreground'} />
@@ -158,7 +158,7 @@ function StudentPreviewPanel({
   return (
     <div className="rounded-xl border border-border-strong bg-panel p-4">
       <div className="flex items-center gap-3">
-        <span aria-hidden className="editorial grid size-11 flex-none place-items-center rounded-full bg-olive text-lg text-white">{item.student.name.charAt(0)}</span>
+        <span aria-hidden className="grid size-11 flex-none place-items-center rounded-full bg-olive-weak text-olive"><User className="size-5" /></span>
         <div className="min-w-0">
           <div className="truncate text-sm font-bold text-foreground">{item.student.name}</div>
           <div className="text-[12px] text-muted-foreground">

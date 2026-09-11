@@ -9,6 +9,8 @@ import { PrintDocument } from '@/components/print/print-document'
 type PrintPreviewProps = {
   /** Heading of the printed document (letterhead + toolbar). */
   docTitle: string
+  /** English translation of the title, shown under it in the letterhead. */
+  docTitleEn?: string
   /** Filename the browser suggests when printing to PDF. */
   documentTitle?: string
   /** Right-side letterhead meta (date, number, name…). */
@@ -22,7 +24,7 @@ type PrintPreviewProps = {
  * on a dark backdrop and prints that exact node via react-to-print. Reads nothing
  * and writes nothing — it only presents voucher-derived data passed as children.
  */
-export function PrintPreview({ docTitle, documentTitle, meta, onClose, children }: PrintPreviewProps) {
+export function PrintPreview({ docTitle, docTitleEn, documentTitle, meta, onClose, children }: PrintPreviewProps) {
   const contentRef = useRef<HTMLDivElement>(null)
   const handlePrint = useReactToPrint({ contentRef, documentTitle: documentTitle ?? docTitle })
 
@@ -66,7 +68,7 @@ export function PrintPreview({ docTitle, documentTitle, meta, onClose, children 
 
       <div className="flex-1 overflow-auto px-4 pb-10">
         <div className="mx-auto w-fit">
-          <PrintDocument ref={contentRef} docTitle={docTitle} meta={meta}>
+          <PrintDocument ref={contentRef} docTitle={docTitle} docTitleEn={docTitleEn} meta={meta}>
             {children}
           </PrintDocument>
         </div>

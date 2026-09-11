@@ -10,23 +10,25 @@ import { VoucherPrint } from '@/features/print/voucher-print'
 import { CancelVoucherDialog } from '@/features/financial-report/cancel-voucher-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { SmartDateInput } from '@/components/ui/smart-date-input'
 import { Money } from '@/components/ui/money'
 import { SkeletonRows } from '@/components/ui/skeleton'
 import { aggregateStudents, financialTotals, movementsNewestFirst, paymentCount, receiptCount, statementFor } from '@/lib/aggregate'
 import { withRunningBalance, type RunningMovement } from '@/lib/statement-rows'
 import { formatDate, formatNumber } from '@/lib/format'
-import { formatVoucherNo } from '@/lib/voucher'
+import { voucherRef } from '@/lib/voucher'
 import type { FinancialMovement } from '@/types/domain'
 import { useSettingsStore } from '@/store/use-settings-store'
 import { useShellStore, type ReportView } from '@/store/use-shell-store'
 import { useWorkspaceStore } from '@/store/use-workspace-store'
 
-type Period = 'all' | 'month' | 'week'
+type Period = 'all' | 'today' | 'week' | 'month'
 
 const PERIODS: { id: Period; label: string }[] = [
   { id: 'all', label: 'الكل' },
-  { id: 'month', label: 'هذا الشهر' },
+  { id: 'today', label: 'اليوم' },
   { id: 'week', label: 'هذا الأسبوع' },
+  { id: 'month', label: 'هذا الشهر' },
 ]
 
 const REPORT_VIEWS: { id: ReportView; label: string }[] = [
@@ -44,6 +46,7 @@ function periodStartIso(period: Period, today = new Date()): string | null {
   if (period === 'all') return null
   const year = today.getFullYear()
   const month = today.getMonth()
+  if (period === 'today') return `${year}-${String(month + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   if (period === 'month') return `${year}-${String(month + 1).padStart(2, '0')}-01`
   const daysSinceSaturday = (today.getDay() + 1) % 7
   const start = new Date(year, month, today.getDate() - daysSinceSaturday)
@@ -226,11 +229,11 @@ export function FinancialReportWorkspace() {
           </div>
           <label className="flex flex-col gap-1 text-[12px] font-medium text-muted-foreground">
             من تاريخ
-            <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="figure h-9 w-40" />
+            <SmartDateInput value={fromDate} onChange={setFromDate} className="figure h-9 w-40" />
           </label>
           <label className="flex flex-col gap-1 text-[12px] font-medium text-muted-foreground">
             إلى تاريخ
-            <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="figure h-9 w-40" />
+            <SmartDateInput value={toDate} onChange={setToDate} className="figure h-9 w-40" />
           </label>
           {accountName || fromDate || toDate ? (
             <button type="button" onClick={() => { setAccountName(''); setFromDate(''); setToDate('') }} className="h-9 text-[12px] font-semibold text-olive">
@@ -469,7 +472,7 @@ function GeneralStatementTable({ rows, opening, loaded, allEmpty }: { rows: Runn
               return (
                 <tr key={`${movement.movementType}-${movement.id}`}>
                   <td className="figure whitespace-nowrap border-b border-border px-3 py-2.5">{formatDate(movement.voucherDate)}</td>
-                  <td className="figure border-b border-border px-3 py-2.5 text-muted-foreground">{formatVoucherNo(movement.voucherNumber)}</td>
+                  <td className="figure border-b border-border px-3 py-2.5 text-muted-foreground">{voucherRef(movement.movementType, movement.voucherNumber)}</td>
                   <td className="border-b border-border px-3 py-2.5 text-muted-foreground">{partyAndContext(movement)}</td>
                   <td className={`figure border-b border-border px-3 py-2.5 text-end font-semibold ${isReceipt ? 'text-faint' : 'text-clay'}`}>{isReceipt ? '—' : formatNumber(movement.amount)}</td>
                   <td className={`figure border-b border-border px-3 py-2.5 text-end font-semibold ${isReceipt ? 'text-gold' : 'text-faint'}`}>{isReceipt ? formatNumber(movement.amount) : '—'}</td>
@@ -556,16 +559,16 @@ function MovementTable({
           return (
             <tr key={`${movement.movementType}-${movement.id}`} className={selected ? 'bg-highlight' : ''}>
               {showType ? <td className="border-b border-border px-3 py-2.5"><span className={`inline-flex items-center gap-1.5 border px-2.5 py-0.5 text-[11.5px] font-medium ${isReceipt ? 'border-gold/30 bg-gold-weak text-gold' : 'border-clay/30 bg-clay-weak text-clay'}`}><span className={`size-1.5 ${isReceipt ? 'bg-gold' : 'bg-clay'}`} aria-hidden />{isReceipt ? 'قبض' : 'صرف'}</span></td> : null}
-              <td className="figure border-b border-border px-3 py-2.5 text-muted-foreground">{formatVoucherNo(movement.voucherNumber)}</td>
+              <td className="figure border-b border-border px-3 py-2.5 text-muted-foreground">{voucherRef(movement.movementType, movement.voucherNumber)}</td>
               <td className="figure whitespace-nowrap border-b border-border px-3 py-2.5">{formatDate(movement.voucherDate)}</td>
               <td className="border-b border-border px-3 py-2.5 text-muted-foreground">{partyAndContext(movement)}</td>
               <td className={`figure border-b border-border px-3 py-2.5 text-end font-bold ${isReceipt ? 'text-gold' : 'text-clay'}`}>{isReceipt ? '+' : '−'}{formatNumber(movement.amount)}</td>
               {showActions ? (
                 <td className="border-b border-border px-3 py-2.5"><div className="flex items-center justify-end gap-0.5">
-                  <button type="button" onClick={() => onPreview?.(movement)} aria-pressed={selected} aria-label={`معاينة ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="معاينة" className={`p-1.5 ${selected ? 'text-olive' : 'text-faint'}`}><Eye className="size-4" /></button>
-                  <button type="button" onClick={() => onPrintVoucher?.(movement)} aria-label={`طباعة ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="طباعة السند" className="p-1.5 text-faint"><Printer className="size-4" /></button>
-                  <button type="button" onClick={() => onEdit?.(movement)} aria-label={`تعديل ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="تعديل السند" className="p-1.5 text-faint"><Pencil className="size-4" /></button>
-                  <button type="button" onClick={() => onCancel?.(movement)} aria-label={`إبطال ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${formatVoucherNo(movement.voucherNumber)}`} title="إبطال السند" className="p-1.5 text-faint"><Ban className="size-4" /></button>
+                  <button type="button" onClick={() => onPreview?.(movement)} aria-pressed={selected} aria-label={`معاينة ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${voucherRef(movement.movementType, movement.voucherNumber)}`} title="معاينة" className={`p-1.5 ${selected ? 'text-olive' : 'text-faint'}`}><Eye className="size-4" /></button>
+                  <button type="button" onClick={() => onPrintVoucher?.(movement)} aria-label={`طباعة ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${voucherRef(movement.movementType, movement.voucherNumber)}`} title="طباعة السند" className="p-1.5 text-faint"><Printer className="size-4" /></button>
+                  <button type="button" onClick={() => onEdit?.(movement)} aria-label={`تعديل ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${voucherRef(movement.movementType, movement.voucherNumber)}`} title="تعديل السند" className="p-1.5 text-faint"><Pencil className="size-4" /></button>
+                  <button type="button" onClick={() => onCancel?.(movement)} aria-label={`إبطال ${isReceipt ? 'سند القبض' : 'سند الصرف'} رقم ${voucherRef(movement.movementType, movement.voucherNumber)}`} title="إبطال السند" className="p-1.5 text-faint"><Ban className="size-4" /></button>
                 </div></td>
               ) : null}
             </tr>
@@ -606,7 +609,7 @@ function VoucherPreviewPanel({
       </span>
 
       <div className="mt-3 grid gap-2 text-sm">
-        <div className="flex items-center justify-between"><span className="text-muted-foreground">رقم السند</span><span className="figure font-semibold text-foreground">{formatVoucherNo(movement.voucherNumber)}</span></div>
+        <div className="flex items-center justify-between"><span className="text-muted-foreground">رقم السند</span><span className="figure font-semibold text-foreground">{voucherRef(movement.movementType, movement.voucherNumber)}</span></div>
         <div className="flex items-center justify-between"><span className="text-muted-foreground">التاريخ</span><span className="figure text-foreground">{formatDate(movement.voucherDate)}</span></div>
         <div className="flex items-center justify-between"><span className="text-muted-foreground">البيان</span><span className="max-w-[60%] truncate text-end text-foreground">{partyAndContext(movement)}</span></div>
       </div>

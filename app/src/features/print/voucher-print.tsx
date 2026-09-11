@@ -1,7 +1,7 @@
 import { PrintPreview } from '@/components/print/print-preview'
 import { amountInWords } from '@/lib/amount-in-words'
 import { formatDate, formatNumber } from '@/lib/format'
-import { formatVoucherNo, voucherTypeLabel } from '@/lib/voucher'
+import { voucherRef, voucherTypeLabel } from '@/lib/voucher'
 import { getSettings } from '@/store/use-settings-store'
 import type { FinancialMovement } from '@/types/domain'
 
@@ -17,7 +17,8 @@ const HAIR = 'border-[#e2e8f0]'
 export function VoucherPrint({ movement, onClose }: VoucherPrintProps) {
   const isReceipt = movement.movementType === 'receipt'
   const typeLabel = voucherTypeLabel(movement.movementType)
-  const voucherNo = formatVoucherNo(movement.voucherNumber)
+  const typeLabelEn = isReceipt ? 'Receipt Voucher' : 'Payment Voucher'
+  const ref = voucherRef(movement.movementType, movement.voucherNumber)
   const settings = getSettings()
   const centerName = settings.name
   const words = amountInWords(movement.amount)
@@ -25,13 +26,12 @@ export function VoucherPrint({ movement, onClose }: VoucherPrintProps) {
   return (
     <PrintPreview
       docTitle={typeLabel}
-      documentTitle={`${typeLabel} رقم ${voucherNo} — ${centerName}`}
+      docTitleEn={typeLabelEn}
+      documentTitle={`${typeLabel} ${ref} — ${centerName}`}
       onClose={onClose}
       meta={
         <>
-          <div>
-            رقم السند <span className="figure font-semibold text-[#0f172a]">{voucherNo}</span>
-          </div>
+          <div className="figure text-[15px] font-extrabold text-[#dc2626]">رقم {ref}</div>
           <div>
             التاريخ <span className="figure">{formatDate(movement.voucherDate)}</span>
           </div>
@@ -44,11 +44,10 @@ export function VoucherPrint({ movement, onClose }: VoucherPrintProps) {
         <div className={`mt-4 border-t ${HAIR} pt-4`}>
           <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             <div className="min-w-0">
-              <div dir="rtl" className="text-[13px] font-medium leading-6 text-[#334155]">
-                {words.ar}
-              </div>
-              <div dir="ltr" className="mt-0.5 text-[11.5px] leading-5 text-[#64748b]">
-                {words.en}
+              <div className="text-[11px] font-medium text-[#64748b]">المبلغ كتابةً</div>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <span dir="rtl" className="text-[13px] font-semibold leading-6 text-[#334155]">{words.ar}</span>
+                <span dir="ltr" className="text-[11.5px] leading-5 text-[#64748b]">{words.en}</span>
               </div>
             </div>
             <div className="text-end sm:min-w-[150px]">
@@ -64,7 +63,7 @@ export function VoucherPrint({ movement, onClose }: VoucherPrintProps) {
       </div>
 
       <div className="mt-16 grid grid-cols-2 gap-10">
-        <Signature label={isReceipt ? 'توقيع المستلِم' : 'توقيع المسؤول'} />
+        <Signature label="أرض كنعان" brand />
         <Signature label={isReceipt ? 'توقيع الدافع' : 'توقيع المستلِم'} />
       </div>
     </PrintPreview>
@@ -80,11 +79,11 @@ function Row({ label, value }: { label: string; value: string }) {
   )
 }
 
-function Signature({ label }: { label: string }) {
+function Signature({ label, brand = false }: { label: string; brand?: boolean }) {
   return (
     <div className="text-center">
       <div className={`mb-2 border-t ${HAIR}`} />
-      <span className={`text-[12px] ${MUTED}`}>{label}</span>
+      <span className={brand ? 'text-[12px] font-bold text-[#1d4ed8]' : `text-[12px] ${MUTED}`}>{label}</span>
     </div>
   )
 }

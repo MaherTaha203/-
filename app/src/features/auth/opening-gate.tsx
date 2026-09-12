@@ -54,7 +54,7 @@ export function OpeningGate() {
           </div>
         </div>
         <div className="relative mt-10 border-t border-border pt-7 text-[12.5px] leading-6 text-muted-foreground">
-          © 2026 أرض كنعان — جميع الحقوق محفوظة
+          © 2026 جميع الحقوق محفوظة - ارض كنعان 
         </div>
       </section>
 

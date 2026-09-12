@@ -1,3 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="أرض كنعان">
-  <image href="/brand/emblem.jpg" x="0" y="0" width="64" height="64" preserveAspectRatio="xMidYMid slice" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 74" role="img" aria-label="أرض كنعان">
+  <rect width="64" height="74" fill="#f8fafc"/>
+  <g fill="none" stroke="#55623b" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 68 V30 A25 25 0 0 1 57 30 V68"/>
+    <path d="M14 68 H50"/>
+    <path d="M32 68 V40 M32 46 C28 42 25 40 22 39 M32 46 C36 42 39 40 42 39"/>
+    <path d="M32 43 C22 43 16 36 16 27 C16 18 23 12 32 12 C41 12 48 18 48 27 C48 36 42 43 32 43 Z" fill="#55623b" fill-opacity="0.12"/>
+  </g>
+  <circle cx="25" cy="24" r="2.1" fill="#55623b"/>
+  <circle cx="39" cy="22" r="2.1" fill="#55623b"/>
+  <circle cx="33" cy="32" r="2.1" fill="#55623b"/>
 </svg>

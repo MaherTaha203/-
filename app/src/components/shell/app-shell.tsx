@@ -136,7 +136,7 @@ export function AppShell() {
 
       <Toaster />
 
-      <nav aria-label="التنقل" className="fixed inset-x-0 bottom-0 z-20 flex flex-none items-stretch justify-around border-t border-border bg-panel/95 px-1 py-1.5 md:hidden">
+      <nav aria-label="التنقل" className="fixed inset-x-0 bottom-0 z-20 flex flex-none items-stretch justify-around border-t border-border bg-panel/95 px-1 pt-1.5 pb-[calc(6px+env(safe-area-inset-bottom,0px))] md:hidden">
         <MobileNavButton active={route === 'home'} icon={Home} label="الرئيسية" onClick={() => navigate('home')} />
         <MobileGroupNav label="الطلاب" icon={Users} active={route === 'students'} value={studentView} items={STUDENT_MENU} onPick={navigateStudents} />
         <MobileGroupNav label="التقرير" icon={FileText} active={route === 'report'} value={reportView} items={REPORT_MENU} onPick={navigateReport} />
@@ -188,10 +188,21 @@ function ReportNav({ active, reportView, onPick }: { active: boolean; reportView
 
 function MobileGroupNav<T extends string>({ label, icon: Icon, active, value, items, onPick }: { label: string; icon: ComponentType<{ className?: string }>; active: boolean; value: T; items: MenuItem<T>[]; onPick: (value: T) => void }) {
   const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (event: MouseEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false) }
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
+  }, [open])
   return (
-    <div className="relative flex flex-1 justify-center">
-      {open ? <div className="menu-fade absolute bottom-[calc(100%+6px)] end-1/2 z-30 w-48 translate-x-1/2 overflow-hidden rounded-xl border border-border-strong bg-panel py-1 shadow-lg">
-        {items.map((item) => <button key={item.value} type="button" onClick={() => { onPick(item.value); setOpen(false) }} className={`flex w-full px-3.5 py-2.5 text-start text-sm ${active && value === item.value ? 'font-semibold text-olive' : 'text-muted-foreground'}`}>{item.label}</button>)}
+    <div ref={ref} className="relative flex flex-1 justify-center">
+      {/* Menu is centred on-screen above the bar and width-clamped to the viewport,
+          so a group button near the screen edge never has its menu clipped. */}
+      {open ? <div role="menu" className="menu-fade fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] z-40 mx-auto w-[min(18rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-border-strong bg-panel py-1 shadow-lg">
+        {items.map((item) => <button key={item.value} type="button" role="menuitemradio" aria-checked={active && value === item.value} onClick={() => { onPick(item.value); setOpen(false) }} className={`flex w-full px-4 py-3 text-start text-sm ${active && value === item.value ? 'font-semibold text-olive' : 'text-foreground'}`}>{item.label}</button>)}
       </div> : null}
       <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-medium ${active ? 'text-olive' : 'text-muted-foreground'}`}>
         <span className={`grid size-8 place-items-center rounded-full ${active ? 'bg-olive-weak' : ''}`}><Icon className="size-[18px]" /></span>

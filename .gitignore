@@ -10,3 +10,7 @@ Thumbs.db
 
 # NOTE (GOV-001 §3): no dependency or build entries belong here before
 # documentation freeze — their appearance would itself signal a Gate 8 violation.
+
+# Playwright test artifacts (root)
+test-results/
+playwright-report/

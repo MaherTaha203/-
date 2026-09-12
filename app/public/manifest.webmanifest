@@ -1,0 +1,18 @@
+{
+  "name": "أرض كنعان",
+  "short_name": "أرض كنعان",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#f8fafc",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x74",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

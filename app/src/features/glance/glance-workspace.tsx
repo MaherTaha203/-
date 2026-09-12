@@ -162,10 +162,5 @@ export function GlanceWorkspace() {
         </section>
       </div>
 
-      <section className="rounded-2xl border border-border bg-panel px-6 py-5">
-        <p className="text-[15px] font-semibold text-foreground">الالتزام الماليّ … أساس الاستمراريّة</p>
-        <p className="mt-1 text-[12px] font-bold tracking-wide text-olive">أرض كنعان</p>
-      </section>
-    </div>
   )
 }

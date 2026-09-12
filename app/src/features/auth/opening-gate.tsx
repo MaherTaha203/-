@@ -41,24 +41,24 @@ export function OpeningGate() {
   }
 
   return (
-    <div className="grid min-h-screen bg-background lg:grid-cols-[1.1fr_0.9fr]">
-      <section className="relative flex flex-col justify-between overflow-hidden bg-olive-weak px-8 py-12 sm:px-12 lg:px-16 lg:py-16">
-        <div className="relative">
+    <div className="flex min-h-screen flex-col bg-background lg:grid lg:grid-cols-[1.1fr_0.9fr]">
+      <section className="relative flex flex-none flex-col justify-start overflow-hidden bg-olive-weak px-6 py-7 sm:px-12 lg:flex-1 lg:justify-between lg:px-16 lg:py-16">
+        <div className="relative flex w-full items-center gap-4 lg:block">
           <img
             src={EMBLEM_SRC}
             alt="شعار أرض كنعان — شجرة الحياة الكنعانيّة"
-            className="w-[clamp(168px,22vw,288px)] rounded-2xl object-cover shadow-[0_24px_50px_-24px_rgba(15,23,42,0.35)] ring-1 ring-white/70"
+            className="w-16 flex-none rounded-2xl object-cover shadow-[0_24px_50px_-24px_rgba(15,23,42,0.35)] ring-1 ring-white/70 sm:w-24 lg:w-[clamp(168px,22vw,288px)]"
           />
-          <div className="editorial mt-7 text-[clamp(2.4rem,5.5vw,4rem)] text-foreground">
+          <div className="editorial text-[1.9rem] leading-tight text-foreground sm:text-4xl lg:mt-7 lg:text-[clamp(2.4rem,5.5vw,4rem)]">
             أرض كنعان
           </div>
         </div>
-        <div className="relative mt-10 border-t border-border pt-7 text-[12.5px] leading-6 text-muted-foreground">
-          © 2026 جميع الحقوق محفوظة - ارض كنعان 
+        <div className="relative mt-8 hidden border-t border-border pt-7 text-[12.5px] leading-6 text-muted-foreground lg:block">
+          © 2026 جميع الحقوق محفوظة - ارض كنعان
         </div>
       </section>
 
-      <section className="flex flex-col justify-center gap-5 bg-panel px-8 py-12 sm:px-12 lg:px-16">
+      <section className="flex flex-1 flex-col justify-center gap-5 bg-panel px-6 py-8 sm:px-12 lg:flex-none lg:px-16 lg:py-12">
         {mode === 'signin' ? (
           <>
             <div className="text-[12px] font-bold tracking-wide text-olive">الدخول</div>

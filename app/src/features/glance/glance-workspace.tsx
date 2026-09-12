@@ -15,7 +15,7 @@ import { useWorkspaceStore } from '@/store/use-workspace-store'
 const RECENT_LIMIT = 6
 
 function todayLong(): string {
-  return new Intl.DateTimeFormat('ar-EG', {
+  return new Intl.DateTimeFormat('en-US', {
     numberingSystem: 'latn',
     day: 'numeric',
     month: 'long',
